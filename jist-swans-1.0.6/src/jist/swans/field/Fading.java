@@ -68,7 +68,7 @@ public interface Fading
     public double compute()
     {
       // compute fading_dB; positive values are signal gains
-      return 5.0 * Math.log(-2.0 * VARIANCE * Math.log(Constants.random.nextDouble())) / Constants.log10;
+      return 5.0 * StrictMath.log(-2.0 * VARIANCE * StrictMath.log(Constants.random.nextDouble())) / Constants.log10;
     }
   }
 
@@ -102,7 +102,7 @@ public interface Fading
      */
     private static double Besseli0(double x) 
     {
-      double ax = Math.abs(x);
+      double ax = StrictMath.abs(x);
       if (ax < 3.75) 
       {
         double y = x/3.75;
@@ -113,7 +113,7 @@ public interface Fading
       else
       {
         double y = 3.75/ax;
-        return (Math.exp(ax)/Math.sqrt(ax)) * (0.39894228 + y*(0.1328592e-1 + 
+        return (StrictMath.exp(ax)/StrictMath.sqrt(ax)) * (0.39894228 + y*(0.1328592e-1 + 
           y*(0.225319e-2 + y*(-0.157565e-2 + y*(0.916281e-2 + y*(-0.2057706e-1 + 
           y*(0.2635537e-1 + y*(-0.1647633e-1 + y*0.392377e-2))))))));
       }
@@ -127,7 +127,7 @@ public interface Fading
      */
     private static double Besseli1(double x) 
     {
-      double ax = Math.abs(x);
+      double ax = StrictMath.abs(x);
       if (ax < 3.75)
       {
         double y = x/3.75;
@@ -138,7 +138,7 @@ public interface Fading
       else
       {
         double y = 3.75/ax;
-        return Math.abs((Math.exp(ax)/Math.sqrt(ax)) * (0.39894228 + y*(-0.3988024e-1 + 
+        return StrictMath.abs((StrictMath.exp(ax)/StrictMath.sqrt(ax)) * (0.39894228 + y*(-0.3988024e-1 + 
           y*(-0.362018e-2 + y*(0.163801e-2 + y*(-0.1031555e-1 + y*(0.2282967e-1 + 
           y*(-0.2895312e-1 + y*(0.1787654e-1 - y*0.420059e-2)))))))));
       }
@@ -152,7 +152,7 @@ public interface Fading
      */
     private static double computeStandardDeviation(double kFactor)
     {
-      return 1.0/(Math.sqrt(Math.PI/2.0) * Math.exp(-kFactor/2.0) * 
+      return 1.0/(StrictMath.sqrt(StrictMath.PI/2.0) * StrictMath.exp(-kFactor/2.0) * 
         ((1+kFactor)*Besseli0(kFactor/2.0) + kFactor*Besseli1(kFactor/2.0)));
     }
 
@@ -161,7 +161,7 @@ public interface Fading
     public double compute()
     {
       // compute fading_dB; positive values are signal gains
-      double a = Math.sqrt(2.0 * kFactor * stddev * stddev), r, v1, v2;
+      double a = StrictMath.sqrt(2.0 * kFactor * stddev * stddev), r, v1, v2;
       do 
       {
         v1 = -1.0 + 2.0 * Constants.random.nextDouble();
@@ -169,10 +169,10 @@ public interface Fading
         r = v1 * v1 + v2 * v2;
       }
       while (r > 1.0);
-      r = Math.sqrt(-2.0 * Math.log(r) / r);
+      r = StrictMath.sqrt(-2.0 * StrictMath.log(r) / r);
       v1 = a + stddev * v1 * r;
       v2 = stddev * v2 * r;
-      return 5.0 * Math.log(v1*v1 + v2*v2) / Constants.log10;
+      return 5.0 * StrictMath.log(v1*v1 + v2*v2) / Constants.log10;
     }
   }
 

@@ -7,6 +7,9 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - modified to use IP option headers introduced in NetIp
+
 package jist.swans.route;
 
 import jist.swans.mac.MacAddress;
@@ -27,6 +30,9 @@ import org.apache.log4j.Logger;
  * @author Rimon Barr &lt;barr+jist@cs.cornell.edu&gt;
  * @version $Id: RouteZrp.java,v 1.41 2005-03-13 16:11:55 barr Exp $
  * @since SWANS1.0
+ *
+ * Change by Ulm University (Michael Feiri): Use IP option headers
+ *
  */
 
 public class RouteZrp implements RouteInterface.Zrp
@@ -424,7 +430,7 @@ public class RouteZrp implements RouteInterface.Zrp
   //
 
   /** {@inheritDoc} */
-  public void peek(NetMessage msg, MacAddress lastHop)
+  public void peek(NetMessage msg, byte interfaceId, MacAddress lastHop)
   {
     if(logZRP.isDebugEnabled())
     {
@@ -443,22 +449,25 @@ public class RouteZrp implements RouteInterface.Zrp
       logZRP.info("t="+JistAPI.getTime()+" at="+localAddr+" route "+ip);
     }
     NetAddress nextHop = null;
+    NetMessage.IpOption ipOpt = null;
+    ipOpt = (NetMessage.IpOption)ip.getOptions().get(Constants.IP_OPTION_ZRP);
     // compute next hop
     if(iarp.hasRoute(ip.getDst()))
     {
       // route found inside zone
       nextHop = iarp.getRoute(ip.getDst())[0];
     }
-    else if(ip.hasSourceRoute())
+    else if(ipOpt!=null)
     {
+      NetMessage.IpOptionSourceRoute ipOptSr = (NetMessage.IpOptionSourceRoute)ipOpt;
       // packet source routed
-      NetAddress[] route = ip.getSourceRoute();
+      NetAddress[] route = ipOptSr.getRoute();
       // look within source route for first node inside zone
       int i=route.length-1;
-      for(i=route.length-1; i>=ip.getSourceRoutePointer() && !iarp.hasRoute(route[i]); i--)
+      for(i=route.length-1; i>=ipOptSr.getPtr() && !iarp.hasRoute(route[i]); i--)
       {
       }
-      if(i<ip.getSourceRoutePointer())
+      if(i<ipOptSr.getPtr())
       {
         // todo: route failure
         return;
@@ -466,10 +475,10 @@ public class RouteZrp implements RouteInterface.Zrp
       nextHop = iarp.getRoute(route[i])[0];
       // adjust source route pointer
       if(nextHop.equals(route[i])) i++;
-      if(i!=ip.getSourceRoutePointer())
+      if(i!=ipOptSr.getPtr())
       {
         if(ip.isFrozen()) ip = ip.copy();
-        ip.setSourceRoute(new NetMessage.IpOptionSourceRoute(ip.getSourceRoute(), i));
+		ip.getOptions().put(Constants.IP_OPTION_ZRP, new NetMessage.IpOptionSourceRoute(ipOptSr.getRoute(), i));		
       }
     }
 
@@ -497,22 +506,22 @@ public class RouteZrp implements RouteInterface.Zrp
       if(msg instanceof RouteInterface.Zrp.MessageNdp)
       {
         stats.send.ndpPackets++;
-        stats.send.ndpBytes+=Math.max(msg.getSize(),0);
+        stats.send.ndpBytes+=StrictMath.max(msg.getSize(),0);
       }
       else if(msg instanceof RouteInterface.Zrp.MessageIarp)
       {
         stats.send.iarpPackets++;
-        stats.send.iarpBytes+=Math.max(msg.getSize(),0);
+        stats.send.iarpBytes+=StrictMath.max(msg.getSize(),0);
       }
       else if(msg instanceof RouteInterface.Zrp.MessageBrp)
       {
         stats.send.brpPackets++;
-        stats.send.brpBytes+=Math.max(msg.getSize(),0);
+        stats.send.brpBytes+=StrictMath.max(msg.getSize(),0);
       }
       else if(msg instanceof RouteInterface.Zrp.MessageIerp)
       {
         stats.send.ierpPackets++;
-        stats.send.ierpBytes+=Math.max(msg.getSize(),0);
+        stats.send.ierpBytes+=StrictMath.max(msg.getSize(),0);
       }
       else
       {
@@ -547,7 +556,7 @@ public class RouteZrp implements RouteInterface.Zrp
       if(stats!=null) 
       {
         stats.recv.ndpPackets++;
-        stats.recv.ndpBytes+=Math.max(msg.getSize(),0);
+        stats.recv.ndpBytes+=StrictMath.max(msg.getSize(),0);
       }
       ndp.receive((RouteInterface.Zrp.MessageNdp)msg, src, lastHop, macId);
     }
@@ -556,7 +565,7 @@ public class RouteZrp implements RouteInterface.Zrp
       if(stats!=null)
       {
         stats.recv.iarpPackets++;
-        stats.recv.iarpBytes+=Math.max(msg.getSize(),0);
+        stats.recv.iarpBytes+=StrictMath.max(msg.getSize(),0);
       }
       iarp.receive((RouteInterface.Zrp.MessageIarp)msg, src);
     }
@@ -565,7 +574,7 @@ public class RouteZrp implements RouteInterface.Zrp
       if(stats!=null)
       {
         stats.recv.brpPackets++;
-        stats.recv.brpBytes+=Math.max(msg.getSize(),0);
+        stats.recv.brpBytes+=StrictMath.max(msg.getSize(),0);
       }
       brp.receive((RouteInterface.Zrp.MessageBrp)msg, src);
     }
@@ -574,7 +583,7 @@ public class RouteZrp implements RouteInterface.Zrp
       if(stats!=null)
       {
         stats.recv.ierpPackets++;
-        stats.recv.ierpBytes+=Math.max(msg.getSize(),0);
+        stats.recv.ierpBytes+=StrictMath.max(msg.getSize(),0);
       }
       ierp.receive((RouteInterface.Zrp.MessageIerp)msg);
     }
@@ -584,5 +593,9 @@ public class RouteZrp implements RouteInterface.Zrp
     }
   }
 
+  public void dropNotify(Message packet, MacAddress packetNextHop) {
+	  // unused
+  }
+  
 } // class: RouteZrp
 

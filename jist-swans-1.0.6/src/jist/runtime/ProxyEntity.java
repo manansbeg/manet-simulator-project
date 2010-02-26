@@ -89,7 +89,7 @@ final class ProxyEntity extends Entity.Empty
   //
 
   /**
-   * Check recursively whether a given class implements a given interface.
+   * Check whether a given class implements a given interface.
    *
    * @param c class to check
    * @param ci interface to check for
@@ -97,7 +97,46 @@ final class ProxyEntity extends Entity.Empty
    */
   public static boolean doesImplement(Class c, Class ci)
   {
-    return ci.isInterface() && ci.isAssignableFrom(c);
+    while(c!=null)
+    {
+        // modified by Christian Spann
+        // the parent interfaces of the returned interfaces may also be
+        // the interface we search for
+//         if(Util.contains(c.getInterfaces(), ci)){
+//            return true;
+//         }
+         Class[] ifaces = c.getInterfaces();
+         //search the interfaces and their parents
+         if(searchInterface(ifaces, ci)){
+        return true;
+         }
+      //check superclasses  
+      c = c.getSuperclass();
+    }
+    return false;
+  }
+
+  /**
+   * Searches the list of interfaces and all their parent interfaces for the given Interface
+   * recursively.
+   * @param ifaces the list of interfaces
+   * @param ci the interface to search for
+   * @return true if found - false if not
+   */
+  private static boolean searchInterface(Class[] ifaces, Class ci){
+      for (Class iface : ifaces) {
+          //check the interface itself
+          if(iface.equals(ci)){
+              return true;
+          }
+          //check parent interfaces
+          if(iface.getInterfaces().length > 0){
+              if(searchInterface(iface.getInterfaces(), ci)){
+                  return true;
+              }
+          }
+      }
+      return false;
   }
 
   /**

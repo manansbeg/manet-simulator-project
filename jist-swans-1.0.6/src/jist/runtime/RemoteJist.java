@@ -7,6 +7,10 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - Allow specific stdout and stderr streams
+// - Bugfixes in classloading mechanisms
+
 package jist.runtime;
 
 import java.io.*;
@@ -16,6 +20,7 @@ import java.rmi.*;
 import java.rmi.server.*;
 import java.rmi.registry.*;
 import org.apache.bcel.classfile.*;
+import org.apache.bcel.util.ClassPath;
 
 /** 
  * All the JiST client-server related remote classes.
@@ -386,9 +391,9 @@ public class RemoteJist
     private ResourceFinderRemote resources;
 
     /**
-     * Hashmap of loaded classes.
+     * Map of loaded classes.
      */
-    private HashMap loaded;
+    private Map loaded;
 
     /**
      * Create new remote classloader backed by 
@@ -449,9 +454,9 @@ public class RemoteJist
     private ResourceFinderRemote resources;
 
     /**
-     * Hashmap of loaded classes.
+     * Map of loaded classes.
      */
-    private HashMap cache;
+    private Map cache;
 
     /**
      * Local server output stream.
@@ -540,6 +545,28 @@ public class RemoteJist
       cache = new HashMap();
     }
 
+    /**
+     * Get the ClassPath associated with this Repository
+	 * @author Michael Feiri
+     */
+    public ClassPath getClassPath()
+    {
+        // we are not backed by a filesystem, so we cannot offer a ClassPath
+        // object with a custom path! subclassing ClassPath could be an option,
+        // but simply returning null looks like a viable solution. this approach
+        // is also used in org.apache.bcel.util.ClassLoaderRepository, which
+        // might have served as a template for RemoteRepository.
+ 
+ 		// Elmar Schoch: Another (untested) possibility might be to return
+ 		// the Java temp dir, where JiST caches rewritten classes
+ 		// but this is probably not reliable (since one might choose to
+ 		// disable caching of rewritten classes)
+ 		
+    	// return new ClassPath(System.getProperty("java.io.tmpdir"));
+    	
+        return null;
+    }
+
   } // class: RemoteRepository
 
 
@@ -604,6 +631,22 @@ public class RemoteJist
       rerr = new RemoteIO.RemoteOutputStreamReceiver(System.err);
     }
 
+    // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    /**
+     * New constructor for JistClient to be able to assign user-defined
+     * output streams to the remote server instead of simply using
+     * System.out and System.err (which is still possible, of course)
+     * @author Elmar Schoch
+     * @param outStream Stream for output (like System.out)
+     * @param errStream Stream for errors (like System.err)
+     * @throws RemoteException
+     */
+    public JistClient(OutputStream outStream, OutputStream errStream) throws RemoteException {
+    	rout = new RemoteIO.RemoteOutputStreamReceiver(outStream);
+    	rerr = new RemoteIO.RemoteOutputStreamReceiver(errStream);
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
     //////////////////////////////////////////////////
     // JistClient interface
     //
@@ -623,10 +666,19 @@ public class RemoteJist
     /** {@inheritDoc} */
     public synchronized void done() throws RemoteException
     {
+    	// @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    	// Modified to assure that the "notify" command is executed 
+    	// (since the remote client waits for release)
+    	try {
       UnicastRemoteObject.unexportObject(this, true);
+    	} finally {
       rout = null;
       rerr = null;
+    		
       notify();
+    }
+    	// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    	
     }
 
     //////////////////////////////////////////////////

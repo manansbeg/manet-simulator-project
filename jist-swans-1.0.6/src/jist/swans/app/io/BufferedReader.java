@@ -182,7 +182,7 @@ public class BufferedReader extends java.io.BufferedReader
           return -1;
       }
     }
-    int n = Math.min(len, nChars - nextChar);
+    int n = StrictMath.min(len, nChars - nextChar);
     System.arraycopy(cb, nextChar, cbuf, off, n);
     nextChar += n;
     return n;

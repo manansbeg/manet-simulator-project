@@ -7,6 +7,9 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - implemented missing constructor of Mobility.RandomWaypoint
+
 package jist.swans.field;
 
 import jist.swans.misc.Location;
@@ -171,7 +174,15 @@ public interface Mobility
      */
     public RandomWaypoint(Location.Location2D bounds, String config)
     {
-      throw new RuntimeException("not implemented");
+	// @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// Implemented functionality
+	// throw new RuntimeException("not implemented");
+        // parse config string of the form
+        // <pause-time>,<precicion>,<minspeed>,<maxspeed>
+    	String[] data = config.split(",");
+    	init(bounds,Integer.parseInt(data[0]) * Constants.SECOND ,Float.parseFloat(data[1]),
+                   Float.parseFloat(data[2]), Float.parseFloat(data[3]));
+	// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     }
     
     /**
@@ -220,7 +231,7 @@ public interface Mobility
           if(Main.ASSERT) Util.assertion(rwi.waypoint.inside(bounds));
           float speed = minspeed + (maxspeed-minspeed) * Constants.random.nextFloat();
           float dist = loc.distance(rwi.waypoint);
-          rwi.steps = (int)Math.max(Math.floor(dist / precision),1);
+          rwi.steps = (int)StrictMath.max(StrictMath.floor(dist / precision),1);
           if(Main.ASSERT) Util.assertion(rwi.steps>0);
           float time = dist / speed;
           rwi.stepTime = (long)(time*Constants.SECOND/rwi.steps);
@@ -379,9 +390,9 @@ public interface Mobility
     public void next(FieldInterface f, Integer id, Location loc, MobilityInfo info)
     {
       // compute new random position with fixedRadius+randomRadius() distance
-      double randomAngle = 2*Math.PI*Constants.random.nextDouble();
+      double randomAngle = 2*StrictMath.PI*Constants.random.nextDouble();
       double r = fixedRadius + Constants.random.nextDouble()*randomRadius;
-      double x = r * Math.cos(randomAngle), y = r * Math.sin(randomAngle);
+      double x = r * StrictMath.cos(randomAngle), y = r * StrictMath.sin(randomAngle);
       double lx = loc.getX()+x, ly = loc.getY()+y;
       // bounds check and reflect
       if(lx<0) lx=-lx;

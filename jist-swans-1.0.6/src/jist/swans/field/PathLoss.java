@@ -62,7 +62,7 @@ public interface PathLoss
     {
       double dist = srcLocation.distance(dstLocation);
       double pathloss = - srcRadio.getShared().getGain() - dstRadio.getShared().getGain();
-      double valueForLog = 4.0 * Math.PI * dist / srcRadio.getShared().getWaveLength();
+      double valueForLog = 4.0 * StrictMath.PI * dist / srcRadio.getShared().getWaveLength();
       if (valueForLog > 1.0)
       {
         pathloss += Util.log((float)valueForLog) / Constants.log10 * 20.0;
@@ -89,19 +89,19 @@ public interface PathLoss
       double pathloss = - srcRadio.getShared().getGain() - dstRadio.getShared().getGain();
       double planeEarthLoss = (dist * dist) / 
         (srcLocation.getHeight() * dstLocation.getHeight());
-      double freeSpaceLoss = 4.0 * Math.PI * dist / srcRadio.getShared().getWaveLength();
+      double freeSpaceLoss = 4.0 * StrictMath.PI * dist / srcRadio.getShared().getWaveLength();
       if (planeEarthLoss > freeSpaceLoss)
       {
         if (planeEarthLoss > 1.0)
         {
-          pathloss += 20.0 * Math.log(planeEarthLoss) / Constants.log10;
+          pathloss += 20.0 * StrictMath.log(planeEarthLoss) / Constants.log10;
         }
       }
       else
       {
         if (freeSpaceLoss > 1.0)
         {
-          pathloss += 20.0 * Math.log(freeSpaceLoss) / Constants.log10;
+          pathloss += 20.0 * StrictMath.log(freeSpaceLoss) / Constants.log10;
         }
       }
       return pathloss;

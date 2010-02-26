@@ -7,6 +7,9 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm Univserity
+// - Do not close RMI streams stdout und stderr automatically 
+
 package jist.runtime;
 
 import java.io.*;
@@ -437,8 +440,17 @@ public final class Main
       {
         System.setOut(lout); System.setErr(lerr);
       }
+      // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+      // Commented out, since rerr and rout are always != null and thus System.out and System.err
+      // are closed (normally setting rerr and rout to null is done by the calling method (jobPump)
+      // in currentJob.client.done();
+      
+      /* 
       if(rerr!=null) rerr.close(); 
       if(rout!=null) rout.close();
+      */
+      
+      // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     }
     catch(Exception e) 
     { 
@@ -775,7 +787,7 @@ public final class Main
           // reconnect with backoff for job queue server failures
           System.out.println("Connection to queue server failed! Will try to reconnect in "+(pause/1000)+" seconds.");
           Thread.sleep(pause);
-          pause = Math.min(maxpause, pause*2);
+          pause = StrictMath.min(maxpause, pause*2);
         }
       }
     }

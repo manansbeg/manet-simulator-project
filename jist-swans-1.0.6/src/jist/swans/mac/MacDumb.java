@@ -254,15 +254,15 @@ public class MacDumb implements MacInterface
     JistAPI.sleep(Constants.LINK_DELAY);
     if(MacAddress.ANY.equals(mdm.getDst()))
     {
-      if(netEntity!=null) netEntity.receive(mdm.getPayload(), mdm.getSrc(), netId, false);
+      if(netEntity!=null) netEntity.receive(mdm.getPayload(), mdm.getSrc(), netId, false, true);
     }
     else if(localAddr.equals(mdm.getDst()))
     {
-      if(netEntity!=null) netEntity.receive(mdm.getPayload(), mdm.getSrc(), netId, false);
+      if(netEntity!=null) netEntity.receive(mdm.getPayload(), mdm.getSrc(), netId, false, false);
     }
     else if(promisc)
     {
-      if(netEntity!=null) netEntity.receive(mdm.getPayload(), mdm.getSrc(), netId, true);
+      if(netEntity!=null) netEntity.receive(mdm.getPayload(), mdm.getSrc(), netId, true, false);
     }
   }
 

@@ -9,6 +9,8 @@
 
 package driver;
 
+import java.util.ArrayList;
+
 import jist.swans.Constants;
 import jist.swans.misc.Util;
 import jist.swans.misc.Mapper;
@@ -27,6 +29,7 @@ import jist.swans.net.NetAddress;
 import jist.swans.net.NetIp;
 import jist.swans.net.PacketLoss;
 import jist.swans.app.AppHeartbeat;
+import jist.swans.app.AppHeartbeat.HeartbeatStats;
 
 import jist.runtime.JistAPI;
 
@@ -48,6 +51,10 @@ public class heartbeat
   public static final int MIN_SPEED = 2;
   /** random waypoint maximum speed. */
   public static final int MAX_SPEED = 10;
+
+  // Elmar Schoch added >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  private static ArrayList<AppHeartbeat> appList = new ArrayList<AppHeartbeat>();
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   /**
    * Initialize simulation node.
@@ -72,6 +79,10 @@ public class heartbeat
     NetIp net = new NetIp(new NetAddress(i), protMap, plIn, plOut);
     AppHeartbeat app = new AppHeartbeat(i, true);
 
+    // Elmar Schoch added >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    heartbeat.appList.add(app);
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    
     // hookup entities
     field.addRadio(radio.getRadioInfo(), radio.getProxy(), placement.getNextLocation());
     field.startMobility(radio.getRadioInfo().getUnique().getID());
@@ -150,6 +161,35 @@ public class heartbeat
     System.out.println("Average sensing = "+f.computeAvgConnectivity(true));
     System.out.println("Average receive = "+f.computeAvgConnectivity(false));
     JistAPI.endAt(time*Constants.SECOND);
+    
+    // Elmar Schoch added >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    JistAPI.runAt(new Runnable()
+    {
+      public void run()
+      {
+        System.out.println("Evaluation");
+        int i = 0;
+        float avgMinSum = 0;
+        float avgMaxSum = 0;
+        float avgSum = 0;
+        for(AppHeartbeat app : appList) {
+        	float[] stats = app.hbs.getNeighborCountStats(5*Constants.SECOND, 60*Constants.SECOND, 500*Constants.MILLI_SECOND);
+        	float[] statTime = app.hbs.getNeighborTimeStats(60*Constants.SECOND);
+        	avgMinSum += stats[0];
+        	avgMaxSum += stats[1];
+        	avgSum += stats[2];
+        	System.out.println("Node "+i+":");
+        	System.out.println(" - Neighbor Count:  Min: "+stats[0]+"  Max: "+stats[1]+"  Avg: "+stats[2]);
+        	System.out.println(" - Neighbor Time:   Min: "+statTime[0]+"  Max: "+statTime[1]+"  Avg: "+statTime[2]);
+        	//app.hbs.displayNeighborTrace();
+        	i++;
+        }
+        System.out.println("Min average: "+(avgMinSum / (float) appList.size()));
+        System.out.println("Max average: "+(avgMaxSum / (float) appList.size()));
+        System.out.println("Total average: "+(avgSum / (float) appList.size()));
+      }
+    }, JistAPI.END);
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   }
 
 }

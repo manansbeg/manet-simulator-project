@@ -764,7 +764,7 @@ public class TransTcp implements TransInterface.TransTcpInterface
       int srcPort, byte priority)
   {
     // get a random number between 0 and 100
-    int prob = Math.abs(Constants.random.nextInt()) % 101;
+    int prob = StrictMath.abs(Constants.random.nextInt()) % 101;
     if (prob >= DROP_PROBABILITY)
     {
       JistAPI.sleep(Constants.TRANS_DELAY);

@@ -447,8 +447,8 @@ public class aodvsim
     JistAPI.sleep(opts.startTime*Constants.SECOND);
     //System.out.println("clear stats at t="+JistAPI.getTimeString());
     stats.clear();
-    int numTotalMessages = (int)Math.floor(((double)opts.sendRate/60) * opts.nodes * opts.duration);
-    long delayInterval = (long)Math.ceil((double)opts.duration * (double)Constants.SECOND / (double)numTotalMessages);
+    int numTotalMessages = (int)StrictMath.floor(((double)opts.sendRate/60) * opts.nodes * opts.duration);
+    long delayInterval = (long)StrictMath.ceil((double)opts.duration * (double)Constants.SECOND / (double)numTotalMessages);
     for(int i=0; i<numTotalMessages; i++)
     {
       //pick random send node

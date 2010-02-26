@@ -15,6 +15,10 @@ import java.rmi.*;
 import java.rmi.server.*;
 import org.apache.log4j.*;
 
+// @author Elmar Schoch
+// import necessary only for advanced schedulers from ext.jist.runtime.SchedulingQueue
+// import ext.jist.runtime.SchedulingQueue;
+
 import jist.runtime.guilog.GuiLog;
 
 /** 
@@ -176,8 +180,12 @@ public final class Controller implements ControllerRemote, Runnable
   /**
    * Queue of simulation events.
    */
-  private final Scheduler.Heap events = new Scheduler.Heap();
-  //private final Scheduler.Calendar events = new Scheduler.Calendar(1000000000, 1000);
+  private final Scheduler events = new Scheduler.Heap();
+  //private final Scheduler events = new Scheduler.Calendar(1000000000, 1000);
+  //private final Scheduler events = new SchedulingQueue.PQScheduler();
+  //private final Scheduler events = new SchedulingQueue.PBScheduler();
+  //private final Scheduler events = new SchedulingQueue.TMScheduler();
+  //private final Scheduler events = new SchedulingQueue.STScheduler();
 
 
   /**

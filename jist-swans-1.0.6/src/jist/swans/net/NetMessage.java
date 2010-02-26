@@ -7,8 +7,20 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University (Michael Feiri, Elmar Schoch)
+// - More flexible handling of option headers
+
+
 package jist.swans.net;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import jist.swans.misc.Location;
 import jist.swans.misc.Message;
 import jist.swans.misc.Util;
 
@@ -45,7 +57,7 @@ public abstract class NetMessage implements Message, Cloneable
   //   protocol               size: 1
   //   header chksum          size: 2
   //   src                    size: 4
-  //   dst                    size: 4
+  //   dst                    size: variable
   //   options:               size: 4 * number
   //   packet payload:        size: variable
   //
@@ -57,7 +69,7 @@ public abstract class NetMessage implements Message, Cloneable
   {
 
     /** Fixed IP packet size. */
-    public static final int BASE_SIZE = 20;
+    public static final int BASE_SIZE = 16;
 
     //////////////////////////////////////////////////
     // message contents
@@ -83,8 +95,9 @@ public abstract class NetMessage implements Message, Cloneable
     private short fragOffset;
 
     // options
-    /** source route. */
-    private IpOptionSourceRoute srcRoute;
+    //private IpOption[] option;
+    //private ArrayList options; // List alone doesnt provide the Cloneable Interface
+    private HashMap options; // Map alone doesnt provide the Cloneable Interface
 
     /** Next identification number to use. */
     private static short nextId = 0;
@@ -114,6 +127,8 @@ public abstract class NetMessage implements Message, Cloneable
       this.ttl = ttl;
       this.id = id;
       this.fragOffset = fragOffset;
+      //options = new ArrayList();
+      options = new HashMap();
     }
 
     /**
@@ -156,14 +171,15 @@ public abstract class NetMessage implements Message, Cloneable
     }
 
     /**
-     * Make copy of packet, usually in order to modify it.
+     * Make a semi shallow copy of packet, usually in order to modify it.
      *
      * @return mutable copy of packet.
      */
     public Ip copy()
     {
-      NetMessage.Ip ip2 = new Ip(payload, src, dst, protocol, priority, ttl);
-      ip2.srcRoute = this.srcRoute;
+      NetMessage.Ip ip2 = new Ip(payload, src, dst, protocol, priority, ttl, id, fragOffset);
+      ip2.options = (HashMap)this.options.clone();
+      //ip2.options = (ArrayList)this.options.clone();		
       return ip2;
     }
 
@@ -265,54 +281,26 @@ public abstract class NetMessage implements Message, Cloneable
     }
 
     //////////////////////////////////////////////////
-    // source route
+    // IpOption
     //
 
     /**
-     * Returns whether packet contains source route.
-     *
-     * @return whether packet contains source route
-     */
-    public boolean hasSourceRoute()
-    {
-      return srcRoute!=null;
-    }
-
-    /**
-     * Return source route. (do not modify)
-     *
-     * @return source route (do not modify)
-     */
-    public NetAddress[] getSourceRoute()
-    {
-      return srcRoute.getRoute();
-    }
-
-    /**
-     * Return source route pointer.
-     *
-     * @return source route pointer
-     */
-    public int getSourceRoutePointer()
-    {
-      return srcRoute.getPtr();
-    }
-
-    /**
-     * Set source route.
-     *
-     * @param srcRoute source route
-     */
-    public void setSourceRoute(IpOptionSourceRoute srcRoute)
-    {
-      if(frozen) throw new IllegalStateException();
-      this.srcRoute = srcRoute;
+	 * Return the optional (thus can be null) IpOption object. Note that
+	 * IpOption objects must be immutable to avoid conflicts with the possibly
+	 * frozen state of the packet
+	 * 
+	 * @return IpOption (can be null)
+	 */
+	public Map getOptions() {
+		//return isFrozen() ? Collections.unmodifiableList(options) : options;
+		return isFrozen() ? Collections.unmodifiableMap(options) : options;
     }
 
     /** {@inheritDoc} */
-    public String toString()
-    {
-      return "ip(src="+src+" dst="+dst+" size="+getSize()+" prot="+protocol+" ttl="+ttl+" route="+srcRoute+" data="+payload+")";
+		public String toString() {
+			return "ip(src=" + src + " dst=" + dst + " size=" + getSize()
+					+ " prot=" + protocol + " ttl=" + ttl + " id=" + id
+					+ " option=" + options + " data=" + payload + ")";
     }
 
     //////////////////////////////////////////////////
@@ -320,15 +308,16 @@ public abstract class NetMessage implements Message, Cloneable
     //
 
     /** {@inheritDoc} */
-    public int getSize()
-    {
+		public int getSize() {
       int size = payload.getSize();
-      if(size==Constants.ZERO_WIRE_SIZE)
-      {
+			if (size == Constants.ZERO_WIRE_SIZE) {
         return Constants.ZERO_WIRE_SIZE;
       }
-      // todo: options
-      return BASE_SIZE + size;
+			Iterator it = options.values().iterator();
+			while (it.hasNext()) {
+				size += ((IpOption)it.next()).getSize();
+			}
+			return BASE_SIZE + size + dst.getSize();
     }
 
     /** {@inheritDoc} */
@@ -444,6 +433,83 @@ public abstract class NetMessage implements Message, Cloneable
   } // class: IpOptionSourceRoute
 
 
+	/**
+	 * The geographic location of an IP packets most recent hop.
+	 */
+	public static class IpOptionHopLoc extends IpOption {
+
+		private static final byte TYPE = (byte) 138;
+		private Location lastHop;
+
+		public IpOptionHopLoc(Location lastLoc) {
+			lastHop = lastLoc;
+		}
+
+		public Location getLoc() {
+			return lastHop;
+		}
+
+		/** {@inheritDoc} */
+		public byte getType() {
+			return TYPE;
+		}
+
+		/** {@inheritDoc} */
+		public int getSize() {
+			/** TODO vans: give Location objects a getSize method */
+			// return lastHop.getSize();
+			return 2;
+		}
+
+		/** {@inheritDoc} */
+		public void getBytes(byte[] msg, int offset) {
+			throw new RuntimeException("not implemented");
+		}
+
+		/** {@inheritDoc} */
+		public String toString() {
+			return "hopLoc:" + lastHop.toString();
+		}
+		
+	} // class: hopLoc
+
+
+	public static class IpOptionRecordRoute extends IpOption {
+
+		private static final byte TYPE = (byte) 7;
+		private List recordedRoute = new ArrayList();
+
+		public IpOptionRecordRoute() {
+		}
+		
+		public void addHop(NetAddress na) {
+			recordedRoute.add(na);
+		}
+		
+		/** {@inheritDoc} */
+		public byte getType() {
+			return TYPE;
+		}
+
+		/** {@inheritDoc} */
+		public int getSize() {
+			return recordedRoute.size()*4;
+		}
+
+		/** {@inheritDoc} */
+		public void getBytes(byte[] msg, int offset) {
+			throw new RuntimeException("not implemented");
+		}
+
+		/** {@inheritDoc} */
+		public String toString() {
+			return "IpOptionRecordRoute:" + recordedRoute.toString();
+		}
+		
+	} // class: IpOptionBeacon
+
+
+	
 } // class: NetMessage
 
 /*

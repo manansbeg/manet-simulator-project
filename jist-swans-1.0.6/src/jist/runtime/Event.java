@@ -7,6 +7,9 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - Make an event comparable
+
 package jist.runtime;
 
 import java.util.Comparator;
@@ -23,7 +26,7 @@ import java.lang.reflect.Modifier;
  * @version $Id: Event.java,v 1.34 2004-07-27 15:46:47 barr Exp $
  * @since JIST1.0
  */
-public class Event 
+public class Event implements Comparable
 {
   //////////////////////////////////////////////////
   // locals
@@ -329,6 +332,20 @@ public class Event
     return hash;
   }
 
+  
+  /**
+   * Implement the Comparable Interface in order to allow Collections
+   * to sort Events by a natural ordering. The comparison works the
+   * same way as the EventComparator provided by JiST. By refusing to
+   * return 0 for concurrent events we get a well defined order in the
+   * spirit of "first come, first serve". This is not a total order!!
+   *
+   * @author Michael Feiri &lt;michael.feiri@uni-ulm.de&gt;
+   */
+  public int compareTo(Object o) {
+	  return (((Event)o).time < this.time) ? 1 : -1;
+  }
+  
   //////////////////////////////////////////////////
   // Event comparison
   //

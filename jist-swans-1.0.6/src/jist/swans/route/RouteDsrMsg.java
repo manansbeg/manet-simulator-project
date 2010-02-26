@@ -173,7 +173,7 @@ public class RouteDsrMsg implements Message, Cloneable
     for (int i = 0; i < options.size(); i++)
     {
       byte[] option = (byte[])options.get(i);
-      int bytesToCopy = Math.min(buf.length - offset, option.length);
+      int bytesToCopy = StrictMath.min(buf.length - offset, option.length);
 
       System.arraycopy(buf, offset, option, 0, bytesToCopy);
       offset += bytesToCopy;
@@ -319,8 +319,8 @@ public class RouteDsrMsg implements Message, Cloneable
      */
     public int getBytes(byte[] buf, int offset)
     {
-      int numBytesToCopy = Math.min(getSize(), buf.length - offset);
-      System.arraycopy(optBuf, optBufOffset, buf, offset, Math.min(getSize(), numBytesToCopy));
+      int numBytesToCopy = StrictMath.min(getSize(), buf.length - offset);
+      System.arraycopy(optBuf, optBufOffset, buf, offset, StrictMath.min(getSize(), numBytesToCopy));
       return numBytesToCopy;
     }
 
@@ -676,8 +676,8 @@ public class RouteDsrMsg implements Message, Cloneable
      */
     public int getTypeSpecificInfoBytes(byte[] buf, int offset)
     {
-      int numBytesToCopy = Math.min(getTypeSpecificInfoSize(), buf.length - offset);
-      System.arraycopy(optBuf, optBufOffset + 12, buf, offset, Math.min(getSize(), numBytesToCopy));
+      int numBytesToCopy = StrictMath.min(getTypeSpecificInfoSize(), buf.length - offset);
+      System.arraycopy(optBuf, optBufOffset + 12, buf, offset, StrictMath.min(getSize(), numBytesToCopy));
       return numBytesToCopy;
     }
 

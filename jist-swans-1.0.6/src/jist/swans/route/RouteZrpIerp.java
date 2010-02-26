@@ -11,6 +11,7 @@ package jist.swans.route;
 
 import jist.swans.net.NetAddress;
 import jist.swans.net.NetMessage;
+import jist.swans.net.NetMessage.IpOption;
 import jist.swans.misc.Timer;
 import jist.swans.misc.Util;
 import jist.swans.Constants;
@@ -142,7 +143,7 @@ public class RouteZrpIerp implements RouteInterface.Zrp.Ierp, Timer
         {
           // source route packet
           if(ip.isFrozen()) ip = ip.copy();
-          ip.setSourceRoute(new NetMessage.IpOptionSourceRoute(route));
+          ip.getOptions().put(Constants.IP_OPTION_ZRP, new NetMessage.IpOptionSourceRoute(route));
           // send it off
           if(logIERP.isInfoEnabled())
           {

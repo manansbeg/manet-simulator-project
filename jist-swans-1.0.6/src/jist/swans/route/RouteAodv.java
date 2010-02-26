@@ -33,6 +33,8 @@ import java.util.Set;
  * @author Rimon Barr &lt;barr+jist@cs.cornell.edu&gt;
  * @version $Id: RouteAodv.java,v 1.48 2006-05-14 18:48:40 barr Exp $
  * @since SWANS1.0
+ *
+ * Bugfix by Ulm University: "Self-Entry" in routing table must not be removed
  */
 public class RouteAodv implements RouteInterface.Aodv
 {
@@ -638,7 +640,7 @@ public class RouteAodv implements RouteInterface.Aodv
      */
     public void incTtl()
     {
-      ttl = (byte)Math.min(ttl+TTL_INCREMENT, TTL_THRESHOLD);
+      ttl = (byte)StrictMath.min(ttl+TTL_INCREMENT, TTL_THRESHOLD);
     }
     
     /**
@@ -1568,6 +1570,14 @@ public class RouteAodv implements RouteInterface.Aodv
       Map.Entry mapEntry = (Map.Entry)itr.next();
       MacAddress macAddr = (MacAddress)mapEntry.getKey();
       OutgoingInfo outInfo = (OutgoingInfo)mapEntry.getValue();
+      
+      // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+      // The routing table contains a "self entry", that must not be
+      // removed. Leads to NullPointerException in
+      // RouteRequest.broadcast(..) otherwise
+      if (macAddr == MacAddress.NULL) continue;
+      // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      
       if (outInfo.getHelloWaitCount() > HELLO_ALLOWED_LOSS)
       {
         //remove all affected routes in routing table
@@ -1641,7 +1651,7 @@ public class RouteAodv implements RouteInterface.Aodv
    * @param msg incoming packet
    * @param lastHop last link-level hop of incoming packet
    */
-  public void peek(NetMessage msg, MacAddress lastHop)
+  public void peek(NetMessage msg, byte interfaceId, MacAddress lastHop)
   {
     //If receive a message from an outgoing link, reset hello_wait_count
     OutgoingInfo lastHopInfo = outgoingSet.getInfo(lastHop);
@@ -2318,6 +2328,11 @@ public class RouteAodv implements RouteInterface.Aodv
       System.out.print(mac+", ");
     }
     System.out.println();
+  }
+
+
+  public void dropNotify(Message packet, MacAddress packetNextHop) {
+	  // unused
   }
 
 }

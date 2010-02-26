@@ -75,7 +75,7 @@ public final class Util
    */
   public static double toDB(double x)
   {
-    return 10.0 * Math.log(x) / Constants.log10;
+    return 10.0 * StrictMath.log(x) / Constants.log10;
   }
 
   /**
@@ -86,7 +86,7 @@ public final class Util
    */
   public static double fromDB(double x)
   {
-    return Math.pow(10.0, x / 10.0);
+    return StrictMath.pow(10.0, x / 10.0);
   }
 
   /**
@@ -190,7 +190,7 @@ public final class Util
   private static native float fast_log(float n);
 
   /**
-   * Native logarithm function wrapper. Will use the regular Java Math.log
+   * Native logarithm function wrapper. Will use the regular Java StrictMath.log
    * if the native function is not available.
    *
    * @param n number to log
@@ -198,7 +198,7 @@ public final class Util
    */
   public static float log(float n)
   {
-    return nativeLogExists ? fast_log(n) : (float)Math.log(n);
+    return nativeLogExists ? fast_log(n) : (float)StrictMath.log(n);
   }
 
   /**

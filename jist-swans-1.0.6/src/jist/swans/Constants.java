@@ -60,7 +60,7 @@ public final class Constants
   /** Speed of light in a vacuum (units: meter/second). */
   public static final double SPEED_OF_LIGHT = 2.9979e8;
   /** Pre-computed natural logarithm of 10. */
-  public static final double log10 = Math.log(10);
+  public static final double log10 = StrictMath.log(10);
 
   //////////////////////////////////////////////////
   // Field-related constants
@@ -78,7 +78,7 @@ public final class Constants
   /** node placement choice constant. */
   public static final int PLACEMENT_GRID    = 2;
   /** node placement choice constant. */
-  public static final int PLACEMENT_MAX     = 2;
+  public static final int PLACEMENT_STREET_RANDOM    = 3;
   /** node placement choice constant. */
   public static final int PLACEMENT_DEFAULT = PLACEMENT_RANDOM;
 
@@ -93,7 +93,16 @@ public final class Constants
   /** node mobility choice constant. */
   public static final int MOBILITY_WALK     = 4;
   /** node mobility choice constant. */
+  public static final int MOBILITY_STRAW_SIMPLE = 5;
+  /** node mobility choice constant. */
+  public static final int MOBILITY_STRAW_OD   = 6;
+  /** node mobility choice constant. */
   public static final int MOBILITY_DEFAULT  = MOBILITY_STATIC;
+
+  /** street mobility configuration constant. */
+  public static final int MOBILITY_STREET_RANDOM = 1;
+  /** street mobility configuration constant. */
+  public static final int MOBILITY_STREET_FLOW = 2;
 
   /** spatial data structure choice constant. */
   public static final int SPATIAL_INVALID = -1;
@@ -216,6 +225,11 @@ public final class Constants
   /** default time-to-live. */
   public static final byte TTL_DEFAULT = 64;
 
+
+  // These numbers do not seem to have a very strict relationship to the
+  // official http://www.iana.org/assignments/protocol-numbers assignments.
+  // Probably simply copied from GloMoSim.
+  
   /** network level (IP) protocol number. */
   public static final short NET_PROTOCOL_INVALID        = -1;
   /** network level (IP) protocol number. */
@@ -232,6 +246,8 @@ public final class Constants
   public static final short NET_PROTOCOL_AODV           = 123;
   /** network level (IP) protocol number. */
   public static final short NET_PROTOCOL_DSR            = 135;
+  /** network level (IP) protocol number. */
+  public static final short NET_PROTOCOL_CGGC           = 136;
   /** network level (IP) protocol number. */
   public static final short NET_PROTOCOL_ODMRP          = 145;
   /** network level (IP) protocol number. */
@@ -258,6 +274,13 @@ public final class Constants
   /** network level (IP) protocol number. */
   public static final short NET_PROTOCOL_MAX            = 999;
 
+
+  /** IP option number. */
+  public static final Byte IP_OPTION_ZRP = new Byte((byte)137);
+  /** IP option number. */
+  public static final Byte IP_OPTION_HOPLOC = new Byte((byte)138);
+  
+  
   //////////////////////////////////////////////////
   // Routing-related constants
   //

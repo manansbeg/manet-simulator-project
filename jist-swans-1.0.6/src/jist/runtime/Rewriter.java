@@ -11,6 +11,7 @@ package jist.runtime;
 
 import org.apache.bcel.*;
 import org.apache.bcel.classfile.*;
+import org.apache.bcel.util.ClassPath;
 import org.apache.bcel.generic.*;
 import org.apache.bcel.verifier.structurals.*;
 import org.apache.log4j.*;
@@ -199,6 +200,9 @@ public final class Rewriter extends ClassLoader
     "jargs.gnu.",
     "bsh.",
     "org.python.",
+    "apple.",
+    "org.xml.",
+    "com.mysql.",
   };
 
   /**
@@ -311,7 +315,21 @@ public final class Rewriter extends ClassLoader
     }
     this.lookupCache = new HashMap();
     this.calledBy = new HashMap();
-    this.rewriterTime = Repository.lookupClassFile(Rewriter.class.getName()).getTime();
+
+    // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    // Splitted up classfile lookup and call of "getTime()", since this sometime led to
+    // NullPointerExceptions
+    
+    // this.rewriterTime = Repository.lookupClassFile(Rewriter.class.getName()).getTime();
+    
+    ClassPath.ClassFile cf = Repository.lookupClassFile(Rewriter.class.getName());
+    if ( cf != null) {
+        this.rewriterTime = cf.getTime();
+    } else {
+        this.rewriterTime = 0;
+    }    
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    
     this.rewritten = new HashMap();
     this.rewriters = new Vector();
     this.continuable = new HashSet();
@@ -485,8 +503,23 @@ public final class Rewriter extends ClassLoader
     // put in cache
     // note: must come before call graph processing to ensure termination
     lookupCache.put(name.intern(), jcl);
+    
+    // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    
     // process super
-    JavaClass sup = jcl.getSuperClass();
+    // JavaClass sup = jcl.getSuperClass();
+    
+    // modified to catch a ClassNotFoundException
+    // TODO needs conformance testing!!!
+    JavaClass sup = null;
+    try {
+    	sup = jcl.getSuperClass();
+    } catch (ClassNotFoundException cnfe) {
+    	System.out.println("Rewriter:507 ClassNotFoundException ignored (didn't find superclass of "+jcl+")");
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   
+    
     if(sup!=null) lookupJavaClass(sup.getClassName());
     // process callgraph
     if(!isIgnored(name))

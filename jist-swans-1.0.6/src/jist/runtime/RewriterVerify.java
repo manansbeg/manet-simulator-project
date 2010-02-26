@@ -30,7 +30,7 @@ public final class RewriterVerify
    *
    * @param name class name
    */
-  public static void checkme(String name)
+  public static void checkme(String name) throws java.lang.ClassNotFoundException
   {
     System.out.println("Now verifying: "+name+"\n");
 
@@ -81,7 +81,7 @@ public final class RewriterVerify
         checkme(jcl.getClassName());
       }
     }
-    catch(IOException e)
+    catch(Exception e)
     {
     }
   }

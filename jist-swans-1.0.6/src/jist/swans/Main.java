@@ -196,6 +196,7 @@ public final class Main
       }
       catch(IOException e) 
       { 
+    	  System.out.println("Logging config file for SWANS ("+options.properties+") was not found");
       }
       // set up logging
       if(config!=null)

@@ -7,7 +7,12 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - allow for movement listeners
+
 package jist.swans.field;
+
+import java.util.Vector;
 
 import jist.swans.radio.RadioInterface;
 import jist.swans.radio.RadioInfo;
@@ -74,6 +79,15 @@ public class Field implements FieldInterface
    */
   protected RadioData[] radios;
 
+  // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  /**
+   * Vector holding listeners that want to be notified on
+   * node movements
+   * @author Elmar Schoch
+   */
+  protected Vector moveRadioListeners = new Vector();
+  
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   //////////////////////////////////////////////////
   // initialize
@@ -231,6 +245,11 @@ public class Field implements FieldInterface
      */
     protected RadioData prev, next;
 
+    /** nodes must be able to read their position in order to enable georouting */
+    public Location getLoc() {
+        return loc;
+    }
+
   } // class: RadioData
 
 
@@ -306,6 +325,14 @@ public class Field implements FieldInterface
     {
       logField.info("move radio id="+id+" to="+loc);
     }
+    
+    // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    // Call listeners that want to be notified about movements
+    for (int i=0; i < moveRadioListeners.size(); i++) {
+    		((MovementListenerInterface) moveRadioListeners.get(i)).move(JistAPI.getTime(), loc, id.intValue());
+    }    
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        
     // update spatial data structure
     RadioData rd = getRadioData(id);
     spatial.moveInside(rd, loc);
@@ -319,9 +346,7 @@ public class Field implements FieldInterface
   /** {@inheritDoc} */
   public void moveRadioOff(Integer id, Location delta)
   {
-    Location newLoc = getRadioData(id).loc.getClone();
-    newLoc.add(delta);
-    moveRadio(id, newLoc);
+    moveRadio(id, getRadioData(id).loc.add(delta));
   }
 
   /**
@@ -453,5 +478,31 @@ public class Field implements FieldInterface
     return connectivityVisitor.getAvgLinks();
   }
 
-} // class: Field
+  // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+  /**
+   * Retrieve mobility associated with Field
+   */
+  public Mobility getMobility() {
+	  return mobility;
+  }
+
+  /**
+   * Add listener that wants to be notified about node movements
+   * @param listener
+   */
+  public void addMovementListener(MovementListenerInterface listener) {
+	  moveRadioListeners.add(listener);
+  }
+  
+  /**
+   * Remove node movement listener
+   * @param listener
+   */
+  public void removeMovementListener(MovementListenerInterface listener) {
+	  moveRadioListeners.remove(listener);
+  }
+  
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  
+} // class: Field

@@ -227,7 +227,7 @@ public final class Pickle
   public static int getLength(byte[] b, int offset)
   {
     int len = arrayToInteger(b, offset);
-    return Math.max(0, len)+4;
+    return StrictMath.max(0, len)+4;
   }
 
   public static byte[] stringToArray(String s)

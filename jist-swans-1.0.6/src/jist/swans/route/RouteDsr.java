@@ -7,6 +7,9 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - introduces statistics collection
+
 package jist.swans.route;
 
 import jist.swans.mac.MacAddress;
@@ -35,6 +38,35 @@ import java.util.*;
  */
 public class RouteDsr implements RouteInterface.Dsr
 {
+	
+	// @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// statistics collection classes
+	public static class DsrStats {
+		public DsrPacketStats originated = new DsrPacketStats();
+		public DsrPacketStats forwarded = new DsrPacketStats();
+		public DsrPacketStats recv = new DsrPacketStats();
+		
+	}
+	
+	public static class DsrPacketStats {
+		public long rreqPackets;
+		public long rrepPackets;
+		public long rerrPackets;
+		public long dataPackets;
+		
+		public long totalDsrPackets() {
+			return rreqPackets + rrepPackets + rerrPackets;
+		}
+		
+		public void clear() {
+			rreqPackets = 0;
+			rrepPackets = 0;
+			rerrPackets = 0;
+		}
+	}
+	
+	// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	
   //////////////////////////////////////////////////
   // constants
   //
@@ -294,6 +326,17 @@ public class RouteDsr implements RouteInterface.Dsr
   /** The proxy interface for this object. */
   private RouteInterface.Dsr self;
 
+  // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  /** Statistics object for DSR */
+  private DsrStats stats;
+  
+  /** Set statistics object */
+  public void setStats(DsrStats stats) {
+	  this.stats = stats;
+  }
+  
+  
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   //////////////////////////////////////////////////
   // initialization
@@ -378,6 +421,12 @@ public class RouteDsr implements RouteInterface.Dsr
     RouteDsrMsg reply = new RouteDsrMsg(null);
     reply.addOption(RouteDsrMsg.OptionRouteReply.create(routeToHere));
     
+    // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    if (stats != null) {
+    	stats.originated.rrepPackets++;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    
     if (routeFromHere.length > 0)
     {
       reply.addOption(RouteDsrMsg.OptionSourceRoute.create(0,
@@ -388,7 +437,7 @@ public class RouteDsr implements RouteInterface.Dsr
       src, Constants.NET_PROTOCOL_DSR, Constants.NET_PRIORITY_NORMAL,
       Constants.TTL_DEFAULT);
 
-    JistAPI.sleep((long)(Math.random() * BROADCAST_JITTER));
+    JistAPI.sleep((long)(Constants.random.nextDouble() * BROADCAST_JITTER));
     Transmit(replyMsg);
   }
 
@@ -438,7 +487,13 @@ public class RouteDsr implements RouteInterface.Dsr
     NetMessage.Ip newRequestIp = new NetMessage.Ip(newRequest, src, dst,
       protocol, priority, (byte)(ttl - 1), id, fragOffset);
 
-    JistAPI.sleep((long)(Math.random() * BROADCAST_JITTER));
+    JistAPI.sleep((long)(Constants.random.nextDouble() * BROADCAST_JITTER));
+    
+    // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    if (stats != null) {
+    	stats.forwarded.rreqPackets++;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     netEntity.send(newRequestIp, Constants.NET_INTERFACE_DEFAULT, MacAddress.ANY);
   }
 
@@ -644,6 +699,33 @@ public class RouteDsr implements RouteInterface.Dsr
       NetMessage.Ip ipMsg = new NetMessage.Ip(newMsg, src, dest, protocol,
         priority, (byte)(ttl - 1), id, fragOffset);
 
+      // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+      // Check what type of packet we have here and record stats
+      
+      iter = newMsg.getOptions().iterator();
+      while (iter.hasNext() && stats != null){
+        byte[] optBuffer = (byte[])iter.next();
+        RouteDsrMsg.Option option = RouteDsrMsg.Option.create(optBuffer, 0);
+
+        if (option != null){
+
+        	switch (option.getType()) {
+        		case RouteDsrMsg.OPT_ROUTE_REQUEST:
+        			break; // Counted in separate method
+        		case RouteDsrMsg.OPT_ROUTE_REPLY:
+        			stats.forwarded.rrepPackets++;
+        			break;
+        		case RouteDsrMsg.OPT_SOURCE_ROUTE:
+        			stats.forwarded.dataPackets++;
+        			break;
+        		case RouteDsrMsg.OPT_ROUTE_ERROR:
+        			stats.forwarded.rerrPackets++;
+        			break;
+        	}
+        }
+      }
+      // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
       Transmit(ipMsg);
     }
   }
@@ -715,6 +797,12 @@ public class RouteDsr implements RouteInterface.Dsr
     routeFromSrc[routeLength + 1] = dest;
 
     RouteDsrMsg dsrMsg = new RouteDsrMsg(null);
+
+    // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    if (stats != null) {
+    	stats.originated.rrepPackets++;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     try
     {
@@ -858,16 +946,31 @@ public class RouteDsr implements RouteInterface.Dsr
       switch (opt.getType())
       {
         case RouteDsrMsg.OPT_ROUTE_REQUEST:
+          // @author Elmar Schoch >>>>>>>>>>>>>>>>>>
+        	if (stats != null) {
+        		stats.recv.rreqPackets++;
+        	}
+          // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
           HandleRequest(msg, (RouteDsrMsg.OptionRouteRequest)opt, optBuf, src,
             dst, protocol, priority, ttl, id, fragOffset);
 
           break;
 
         case RouteDsrMsg.OPT_ROUTE_REPLY:
+          // @author Elmar Schoch >>>>>>>>>>>>>>>>>>
+        	if (stats != null) {
+        		stats.recv.rrepPackets++;
+        	}
+          // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
           HandleReply(msg, (RouteDsrMsg.OptionRouteReply)opt);
           break;
 
         case RouteDsrMsg.OPT_SOURCE_ROUTE:
+          // @author Elmar Schoch >>>>>>>>>>>>>>>>>>
+        	if (stats != null) {
+        		stats.recv.dataPackets++;
+        	}
+          // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
           sourceRoute = (RouteDsrMsg.OptionSourceRoute)opt;
 
           if (localAddr.equals(NextRecipient(sourceRoute, dst)))
@@ -891,6 +994,11 @@ public class RouteDsr implements RouteInterface.Dsr
           break;
 
         case RouteDsrMsg.OPT_ROUTE_ERROR:
+          // @author Elmar Schoch >>>>>>>>>>>>>>>>>>
+        	if (stats != null) {
+        		stats.recv.rerrPackets++;
+        	}
+          // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
           HandleError((RouteDsrMsg.OptionRouteError)opt);
           break;
 
@@ -988,6 +1096,12 @@ public class RouteDsr implements RouteInterface.Dsr
         NetAddress.ANY, Constants.NET_PROTOCOL_DSR, Constants.NET_PRIORITY_NORMAL,
         Constants.TTL_DEFAULT);
 
+      // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+      if (stats != null) {
+    	  stats.originated.rreqPackets++;
+      }
+      // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      
       netEntity.send(routeRequestMsg, Constants.NET_INTERFACE_DEFAULT, MacAddress.ANY);
       entry.lastRequestTime = JistAPI.getTime();
 
@@ -1348,6 +1462,12 @@ public class RouteDsr implements RouteInterface.Dsr
           RouteDsrMsg.ERROR_NODE_UNREACHABLE, sourceRoute.getSalvageCount(),
           localAddr, src, nextAddrBuf));
 
+        // @author Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        if (stats != null) {
+        	stats.originated.rerrPackets++;
+        }
+        // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
         int curSegment =
           sourceRoute.getNumAddresses() - sourceRoute.getNumSegmentsLeft();
 
@@ -1507,7 +1627,7 @@ public class RouteDsr implements RouteInterface.Dsr
     }
 
     netEntity.send(msg, Constants.NET_INTERFACE_DEFAULT, MacAddress.ANY);
-    JistAPI.sleep(PASSIVE_ACK_TIMEOUT + (long)(Math.random()*BROADCAST_JITTER));
+    JistAPI.sleep(PASSIVE_ACK_TIMEOUT + (long)(Constants.random.nextDouble()*BROADCAST_JITTER));
 
     self.TransmitWithPassiveAck(msg, numRetransmits + 1);
   }
@@ -1593,7 +1713,7 @@ public class RouteDsr implements RouteInterface.Dsr
     }
 
     netEntity.send(msg, Constants.NET_INTERFACE_DEFAULT, MacAddress.ANY);
-    JistAPI.sleep(timeout + (long)(Math.random() * BROADCAST_JITTER));
+    JistAPI.sleep(timeout + (long)(Constants.random.nextDouble() * BROADCAST_JITTER));
     self.TransmitWithNetworkAck(msg, ackId, 2*timeout, numRetransmits + 1);
   }
 
@@ -1658,6 +1778,12 @@ public class RouteDsr implements RouteInterface.Dsr
     NetMessage.Ip ipMsg = new NetMessage.Ip(dsrMsg, msg.getSrc(), msg.getDst(),
       Constants.NET_PROTOCOL_DSR, msg.getPriority(), msg.getTTL());
 
+    // @author Elmar Schoch >>>>>>>>>>>>>>>>>>
+    if (stats != null) {
+    	stats.originated.dataPackets++;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    
     Transmit(ipMsg);
   }
 
@@ -1673,7 +1799,7 @@ public class RouteDsr implements RouteInterface.Dsr
    * @param msg     the message to examine
    * @param lastHop the MAC address of the node that sent this message
    */
-  public void peek(NetMessage msg, MacAddress lastHop)
+  public void peek(NetMessage msg, byte interfaceId, MacAddress lastHop)
   {
     if (msg instanceof NetMessage.Ip)
     {
@@ -1832,7 +1958,7 @@ public class RouteDsr implements RouteInterface.Dsr
       NetMessage.Ip newIp = new NetMessage.Ip(dsrMsg.getContent(), src, dst,
         dsrMsg.getNextHeaderType(), priority, ttl);        
 
-      netEntity.receive(newIp, lastHop, macId, false);
+      netEntity.receive(newIp, lastHop, macId, false, false);
 
       if (log.isInfoEnabled())
       {
@@ -1840,4 +1966,10 @@ public class RouteDsr implements RouteInterface.Dsr
       }
     }
   }
+
+
+  public void dropNotify(Message packet, MacAddress packetNextHop) {
+	  // unused
+  }
+
 }
