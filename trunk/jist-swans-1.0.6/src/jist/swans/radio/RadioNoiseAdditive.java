@@ -7,6 +7,9 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - Bugfix: mode was set to "receive" in endTransmit, if a signal was pending
+
 package jist.swans.radio;
 
 import jist.swans.misc.Message;
@@ -51,7 +54,8 @@ public class RadioNoiseAdditive extends RadioNoise
   protected byte type;
 
   /**
-   * threshold signal-to-noise ratio.
+   * threshold signal-to-noise ratio (mW)
+   * <code>SNR = signal power / noise power</code>
    */
   protected float thresholdSNR;
 
@@ -144,12 +148,15 @@ public class RadioNoiseAdditive extends RadioNoise
     switch(mode)
     {
       case Constants.RADIO_MODE_IDLE:
+    	// if power greater than general reception threshold and signal noise gap is big enough
+    	// try to recevie the packet ( SNR = Signalpower / Noisepower )
         if(power_mW >= radioInfo.shared.threshold_mW
             &&  power_mW >= totalPower_mW*thresholdSNR)
         {
           lockSignal(msg, power_mW, duration);
           setMode(Constants.RADIO_MODE_RECEIVING);
         }
+    	// otherwise if new noise level is bigger than sensing threshold set channel busy
         else if(totalPower_mW+power_mW > radioInfo.shared.sensitivity_mW)
         {
           setMode(Constants.RADIO_MODE_SENSING);
@@ -164,16 +171,24 @@ public class RadioNoiseAdditive extends RadioNoise
         }
         break;
       case Constants.RADIO_MODE_RECEIVING:
-        if(power_mW > signalPower_mW  &&  power_mW >= totalPower_mW*thresholdSNR)
-        {
+    	// if the new signal is strong enough to be received ...
+    	if(power_mW > signalPower_mW  &&  power_mW >= totalPower_mW*thresholdSNR) {
+    	  // ... check if we should recognize the signal as a packet ...
+    	  if(radioInfo.shared.captureStrongerLast) { // ... yes -> receive it
           lockSignal(msg, power_mW, duration);
           setMode(Constants.RADIO_MODE_RECEIVING);
+    	  } else { // ... no -> through away both
+		unlockSignal();
+		setMode(Constants.RADIO_MODE_SENSING);
         }
-        else if(type == SNR  
-            &&  signalPower_mW < (totalPower_mW-signalPower_mW+power_mW)*thresholdSNR)
-        {
+    	} else {
+          // probably "type == SNR &&" should be removed here because if a collision occures a correct
+          // packet reception is impossible in any case - Manuel Schoch
+          // TODO Manuel Schoch: check if we should use a capture threshold instead of SNR here
+          if(type == SNR && signalPower_mW < (totalPower_mW-signalPower_mW+power_mW)*thresholdSNR) {
           unlockSignal();
           setMode(Constants.RADIO_MODE_SENSING);
+        }
         }
         break;
       case Constants.RADIO_MODE_TRANSMITTING:
@@ -211,7 +226,8 @@ public class RadioNoiseAdditive extends RadioNoise
           dropped |= type == BER  && totalPower_mW>0 &&
               ber.shouldDrop(signalPower_mW/totalPower_mW, 
                   8*signalBuffer.getSize());
-          if(!dropped)
+
+          if(!dropped && signalBuffer!=null)
           {
             this.macEntity.receive(signalBuffer);
           }
@@ -235,5 +251,27 @@ public class RadioNoiseAdditive extends RadioNoise
     }
   } // function: endReceive
 
+  
+  // Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  // overwrite inherited method, since there seems to be an error in the original implementation:
+  // When the radio has signals after transmitting, it should not go into receiving mode, but
+  // into sensing mode.
+  //
+  // RadioInterface interface
+  /** {@inheritDoc} */
+  public void endTransmit()
+  {
+    // radio in sleep mode
+    if(mode==Constants.RADIO_MODE_SLEEP) return;
+    // check that we are currently transmitting
+    if(mode!=Constants.RADIO_MODE_TRANSMITTING) throw new RuntimeException("radio is not transmitting");
+    // set mode
+    setMode(totalPower_mW >= radioInfo.shared.sensitivity_mW 
+    		? Constants.RADIO_MODE_SENSING 
+    		: Constants.RADIO_MODE_IDLE);
+  }
+
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  
 } // class: RadioNoiseAdditive
 

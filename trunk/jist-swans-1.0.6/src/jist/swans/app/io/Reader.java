@@ -70,7 +70,7 @@ public abstract class Reader extends java.io.Reader
   {
     if (n < 0L) 
       throw new IllegalArgumentException("skip value is negative");
-    int nn = (int) Math.min(n, maxSkipBufferSize);
+    int nn = (int) StrictMath.min(n, maxSkipBufferSize);
     synchronized (lock) 
     {
       if ((skipBuffer == null) || (skipBuffer.length < nn))
@@ -78,7 +78,7 @@ public abstract class Reader extends java.io.Reader
       long r = n;
       while (r > 0) 
       {
-        int nc = read(skipBuffer, 0, (int)Math.min(r, nn));
+        int nc = read(skipBuffer, 0, (int)StrictMath.min(r, nn));
         if (nc == -1)
           break;
         r -= nc;

@@ -309,8 +309,8 @@ public final class Util
    */
   public static double round(double num, int decimal)
   {
-    double factor = Math.pow(10, decimal);
-    return Math.rint(num*factor)/factor;
+    double factor = StrictMath.pow(10, decimal);
+    return StrictMath.rint(num*factor)/factor;
   }
 
   /**

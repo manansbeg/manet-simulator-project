@@ -7,6 +7,10 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - implemented packet drop notification throught MAC layer
+// - broacast reception flag
+
 package jist.swans.mac;
 
 import jist.swans.radio.RadioInfo;
@@ -554,7 +558,7 @@ public class Mac802_11 implements MacInterface.Mac802_11
    */
   private void incCW()
   {
-    cw = (short)Math.min(2*cw+1, CW_MAX);
+    cw = (short)StrictMath.min(2*cw+1, CW_MAX);
   }
 
   /**
@@ -922,8 +926,10 @@ public class Mac802_11 implements MacInterface.Mac802_11
 
   private void retryNo()
   {
-    // todo:
-    // NetworkIpNotifyOfPacketDrop(packet, packetNextHop);
+    // @author Michael Feiri >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    // Implemented network layer notification (a todo in the original code)
+    netEntity.dropNotify(packet, packetNextHop);
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     decCW();
     cfDone(true, true);
   }
@@ -1033,7 +1039,7 @@ public class Mac802_11 implements MacInterface.Mac802_11
     {
       if(MacAddress.ANY.equals(msg.getDst()))
       {
-        netEntity.receive(msg.getBody(), msg.getSrc(), netId, false);
+        netEntity.receive(msg.getBody(), msg.getSrc(), netId, false, true);
         cfDone(false, false);
       }
       else
@@ -1044,7 +1050,7 @@ public class Mac802_11 implements MacInterface.Mac802_11
         if(!(msg.getRetry() && getSeqEntry(msg.getSrc())==msg.getSeq()))
         {
           updateSeqEntry(msg.getSrc(), msg.getSeq());
-          netEntity.receive(msg.getBody(), msg.getSrc(), netId, false);
+          netEntity.receive(msg.getBody(), msg.getSrc(), netId, false, false);
         }
       }
     }
@@ -1083,7 +1089,7 @@ public class Mac802_11 implements MacInterface.Mac802_11
     if (promisc && msg.getType()==MacMessage.TYPE_DATA)
     {
       MacMessage.Data macDataMsg = (MacMessage.Data)msg;
-      netEntity.receive(macDataMsg.getBody(), macDataMsg.getSrc(), netId, true);
+      netEntity.receive(macDataMsg.getBody(), macDataMsg.getSrc(), netId, true, false);
     }
   }
 

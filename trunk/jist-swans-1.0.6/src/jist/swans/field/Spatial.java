@@ -923,8 +923,7 @@ public abstract class Spatial
       int count = 0;
       for(int i=0; i<offsets.length; i++)
       {
-        Location l = srcLoc.getClone();
-        l.add(offsets[i]);
+        Location l = srcLoc.add(offsets[i]);
         count += tile.visitTransmit(visitor, srcInfo, l, msg, durationObj, limit);
       }
       return count;

@@ -92,7 +92,7 @@ public class MacLoop implements MacInterface
   public void send(Message msg, MacAddress nextHop)
   {
     JistAPI.sleep(Constants.LINK_DELAY);
-    netEntity.receive(msg, MacAddress.LOOP, (byte)Constants.NET_INTERFACE_LOOPBACK, false);
+    netEntity.receive(msg, MacAddress.LOOP, (byte)Constants.NET_INTERFACE_LOOPBACK, false, false);
     JistAPI.sleep(Constants.EPSILON_DELAY);
     netEntity.pump(netId);
   }

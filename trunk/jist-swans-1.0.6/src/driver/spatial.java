@@ -271,7 +271,7 @@ public class spatial
           bins = options.spatial_div*options.spatial_div;
           break;
         case MODE_SPATIAL_HIER:
-          bins = (long)Math.pow(4, options.spatial_div);
+          bins = (long)StrictMath.pow(4, options.spatial_div);
           break;
         default:
           throw new RuntimeException("invalid spatial binning mode");
@@ -296,7 +296,7 @@ public class spatial
       // results
       System.out.println("seconds: "+((endTime-startTime)/1000.0)
           +" bins="+numbins
-          +" work="+(numbins*Math.max(nodebin,1)));
+          +" work="+(numbins*StrictMath.max(nodebin,1)));
       */
     }
     catch(CmdLineParser.OptionException e)

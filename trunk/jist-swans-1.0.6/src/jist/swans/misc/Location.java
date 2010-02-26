@@ -7,6 +7,10 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - includes size estimation
+// - make objects hashable and comparable
+
 package jist.swans.misc;
 
 import jist.swans.Constants;
@@ -15,7 +19,7 @@ import jist.swans.Main;
 import jist.runtime.JistAPI;
 
 /** 
- * Location (of a node).
+ * Immutable Location (of a node).
  *
  * @author Rimon Barr &lt;barr+jist@cs.cornell.edu&gt;
  * @version $Id: Location.java,v 1.12 2004-04-06 16:07:48 barr Exp $
@@ -89,12 +93,19 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
   public abstract boolean inside(Location min, Location max);
 
   /**
-   * Vector addition of locations... Be careful! This method mutates
-   * the current object.
+   * Vector addition of locations. Returns a Location object whose value
+   * is (this + l).
    *
    * @param l second location / displacement
    */
-  public abstract void add(Location l);
+  public abstract Location add(Location l);
+
+  /**
+   * The size of the dataset in bytes.
+   * 
+   * @return the size of the dataset in bytes
+   */
+  public abstract int size();
 
   /**
    * Return clone of location object.
@@ -133,6 +144,42 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
     else throw new IllegalArgumentException("invalid format, expected x,y[,h]");
   }
 
+  private volatile int hashCode = 0;
+
+  /**
+   * Compute hash code
+   *
+   * @return hash code
+   */
+  public int hashCode() { 
+    if (hashCode == 0) { 
+      int result = 17; 
+      result = result * 31 + Float.floatToIntBits(getX());
+      result = result * 31 + Float.floatToIntBits(getY());
+      result = result * 31 + Float.floatToIntBits(getHeight());
+      hashCode = result; 
+    }
+    return hashCode; 
+  }
+
+  /**
+   * Return whether this is equal to another object.
+   *
+   * @param o object to test equality against
+   * @return whether object provided is equal
+   */
+  public boolean equals(Object o) {
+    if (o == this) return true; 
+    if (!(o instanceof Location)) return false; 
+    Location pn = (Location)o; 
+    return (pn.getX() == this.getX()) &&
+            (pn.getY() == this.getY()) &&
+            (pn.getHeight() == this.getHeight()); 
+  } 
+
+
+
+
   //////////////////////////////////////////////////
   // 2d
   //
@@ -147,7 +194,9 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
   public static final class Location2D extends Location
   {
     /** co-ordinates. */
-    private float x, y, height;
+    private final float x, y, height;
+    private final int SIZE;
+    
 
     /**
      * Create two-dimensional coordinate at default height.
@@ -172,6 +221,7 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
       this.x = x;
       this.y = y;
       this.height = height;
+      this.SIZE = 4*2; //two floats
     }
 
     /** {@inheritDoc} */
@@ -185,7 +235,7 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
     /** {@inheritDoc} */
     public float distance(Location l)
     {
-      return (float)Math.sqrt(distanceSqr(l));
+      return (float)StrictMath.sqrt(distanceSqr(l));
     }
 
     /** {@inheritDoc} */
@@ -229,16 +279,33 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
     }
 
     /** {@inheritDoc} */
-    public void add(Location l)
+    public Location add(Location l)
     {
       Location2D l2d = (Location2D)l;
-      x+=l2d.x; y+=l2d.y;
+      return new Location2D(l2d.x+x,l2d.y+y);
+    }
+
+    /** {@inheritDoc} */
+    public int size()
+    {
+      return SIZE;
     }
 
     /** {@inheritDoc} */
     public String toString()
     {
       return "("+x+","+y+")";
+    }
+
+    /* (non-Javadoc)
+    * @see jist.swans.misc.Location#bearing(jist.swans.misc.Location)
+    */
+    public Location bearing(Location nextPoint) {
+        Location2D l2d = (Location2D)nextPoint;
+        float dx=l2d.x - x;
+        float dy=l2d.y - y;
+        float dist = this.distance(nextPoint);
+        return new Location.Location2D(dx/dist, dy/dist);
     }
 
   } // class: Location2D
@@ -257,7 +324,8 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
   public static final class Location3D extends Location
   {
     /** co-ordinates. */
-    private float x, y, z;
+    private final float x, y, z;
+    private final int SIZE;
 
     /**
      * Create three-dimensional coordinate.
@@ -271,6 +339,7 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
       this.x = x;
       this.y = y;
       this.z = z;
+      this.SIZE = 4*3; // three floats
     }
 
     /** {@inheritDoc} */
@@ -284,7 +353,7 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
     /** {@inheritDoc} */
     public float distance(Location l)
     {
-      return (float)Math.sqrt(distanceSqr(l));
+      return (float)StrictMath.sqrt(distanceSqr(l));
     }
 
     /** {@inheritDoc} */
@@ -329,10 +398,16 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
     }
 
     /** {@inheritDoc} */
-    public void add(Location l)
+    public Location add(Location l)
     {
       Location3D l3d = (Location3D)l;
-      x+=l3d.x; y+=l3d.y; z+=l3d.z;
+      return new Location3D(l3d.x+x, l3d.y+y, l3d.z+z);
+    }
+    
+    /** {@inheritDoc} */
+    public int size()
+    {
+      return SIZE;
     }
 
     /** {@inheritDoc} */
@@ -341,7 +416,26 @@ public abstract class Location implements JistAPI.Timeless, Cloneable
       return "("+x+","+y+","+z+")";
     }
 
+    /* (non-Javadoc)
+     * @see jist.swans.misc.Location#bearing(jist.swans.misc.Location)
+     */
+    public Location bearing(Location nextPoint) {
+            Location3D l3d = (Location3D)nextPoint;
+            float dx=l3d.x - x;
+            float dy=l3d.y - y;
+            float dz = l3d.z - z;
+            float dist = this.distance(nextPoint);
+            return new Location.Location3D(dx/dist, dy/dist, z/dist);
+    }
+
   } // class Location3D
 
+  /**
+   * Returns the normalized direction from the current point to the next point.
+   * @param nextPoint the destination location
+   * @return the normalized bearing for this segment
+   */
+public abstract Location bearing(Location nextPoint);
+    
 } // interface Location
 

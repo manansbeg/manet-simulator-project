@@ -17,7 +17,7 @@ package jist.runtime;
  * @since JIST1.0
  */
 
-abstract class Scheduler
+public abstract class Scheduler
 {
 
   /**

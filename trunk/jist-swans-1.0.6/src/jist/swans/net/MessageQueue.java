@@ -114,27 +114,27 @@ public interface MessageQueue
     /**
      * Heads of message queues for different priorities.
      */
-    private QueuedMessage[] heads; 
+    protected QueuedMessage[] heads; 
 
     /**
      * Tails of message queues for different priorities.
      */
-    private QueuedMessage[] tails;
+    protected QueuedMessage[] tails;
 
     /**
      * Index of highest priority.
      */
-    private byte topPri;
+    protected byte topPri;
 
     /**
      * Length of list.
      */
-    private byte size;
+    protected byte size;
 
     /**
      * List size limit.
      */
-    private byte capacity;
+    protected byte capacity;
 
     /**
      * Initialize prioritized message queue.
@@ -194,7 +194,7 @@ public interface MessageQueue
         throw new IndexOutOfBoundsException("list maximum exceeded");
       }
       size++;
-      topPri = (byte)Math.min(pri, topPri);
+      topPri = (byte)StrictMath.min(pri, topPri);
       QueuedMessage tail = tails[pri];
       if(tail==null)
       {

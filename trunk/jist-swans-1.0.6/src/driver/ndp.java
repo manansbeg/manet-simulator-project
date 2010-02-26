@@ -406,7 +406,7 @@ public class ndp
               System.out.println("Average node/bin = "+options.num/(double)(options.spatial_div*options.spatial_div));
               break;
             case MODE_SPATIAL_HIER:
-              System.out.println("Average node/bin = "+options.num/Math.pow(4, options.spatial_div));
+              System.out.println("Average node/bin = "+options.num/StrictMath.pow(4, options.spatial_div));
               break;
             default:
               throw new RuntimeException("invalid binning type");

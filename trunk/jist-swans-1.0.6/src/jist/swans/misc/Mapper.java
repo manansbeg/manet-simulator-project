@@ -67,7 +67,7 @@ public final class Mapper
     int max = values[0];
     for(int i=1; i<values.length; i++)
     {
-      max = Math.max(max, values[i]);
+      max = StrictMath.max(max, values[i]);
     }
     init(max);
     for(int i=0; i<values.length; i++)
@@ -115,7 +115,7 @@ public final class Mapper
     if(sealed) throw new RuntimeException("mapping sealed");
     mapTo[i] = j;
     mapFrom[j] = i;
-    limit = Math.max(limit, j);
+    limit = StrictMath.max(limit, j);
     limit++;
     return j;
   }

@@ -159,5 +159,14 @@ public class NetAddress
     }
   }
 
+  /**
+   * Return size in bytes (round up if necessary)
+   *
+   * @return size in bytes
+   */
+  public int getSize() {
+	  return 4;
+  }
+  
 } // class NetAddress
 

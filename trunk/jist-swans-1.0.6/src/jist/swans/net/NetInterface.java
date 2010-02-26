@@ -7,6 +7,10 @@
 // All rights reserved.
 // Refer to LICENSE for terms and conditions of use.
 
+// Includes extensions by Ulm University
+// - implemented packet drop notification throught MAC layer
+// - broacast reception flag
+
 package jist.swans.net;
 
 import jist.swans.mac.MacAddress;
@@ -39,9 +43,18 @@ public interface NetInterface extends JistAPI.Proxiable
    * @param msg incoming network packet
    * @param lastHop link-level source of incoming packet
    * @param macId incoming interface
-   * @param promiscuous whether network interface is in promisc. mode
+   * @param promiscuous whether packet was received in promiscuos mode
+   * @param bcast whether packet was received in brodcast mode
    */
-  void receive(Message msg, MacAddress lastHop, byte macId, boolean promiscuous);
+  void receive(Message msg, MacAddress lastHop, byte macId, boolean promiscuos, boolean bcast);
+
+  /**
+   * Receive a notification from the link layer.
+   *
+   * @param packet dropped network packet
+   * @param packetNextHop link-level destination of droped packet
+   */
+  void dropNotify(Message packet, MacAddress packetNextHop);
 
   /**
    * Route, if necessary, and send a message (from TRANSPORT).

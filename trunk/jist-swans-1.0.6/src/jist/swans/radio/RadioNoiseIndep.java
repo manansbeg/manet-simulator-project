@@ -101,7 +101,8 @@ public final class RadioNoiseIndep extends RadioNoise
         break;
       case Constants.RADIO_MODE_RECEIVING:
         if(Main.ASSERT) Util.assertion(signals>0);
-        if(power_mW >= radioInfo.shared.threshold_mW
+        if(radioInfo.shared.captureStrongerLast 
+            && power_mW >= radioInfo.shared.threshold_mW
             &&  power_mW > signalPower_mW*thresholdSNR)
         {
           lockSignal(msg, power_mW, duration);

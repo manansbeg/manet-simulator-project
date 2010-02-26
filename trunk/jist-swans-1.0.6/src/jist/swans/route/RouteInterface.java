@@ -39,9 +39,10 @@ public interface RouteInterface extends NetInterface.NetHandler, JistAPI.Proxiab
    * purposes, but should not change their contents.
    *
    * @param msg incoming packet
+   * @param interfaceId the interface that received the msg
    * @param lastHop last link-level hop of incoming packet
    */
-  void peek(NetMessage msg, MacAddress lastHop);
+  void peek(NetMessage msg, byte interfaceId, MacAddress lastHop);
 
   /**
    * Called by the network layer to request transmission of a packet that 
@@ -54,6 +55,14 @@ public interface RouteInterface extends NetInterface.NetHandler, JistAPI.Proxiab
    */
   void send(NetMessage msg);
 
+  /**
+   * Called by the network layer which forwards notifications of dropped packets
+   * from the link layer. Not all MAC implementations support this feature!
+   * 
+   * @param packet dropped network packet
+   * @param packetNextHop link-level destination of droped packet
+   */
+  void dropNotify(Message packet, MacAddress packetNextHop);
 
   //////////////////////////////////////////////////
   // ZRP
@@ -488,6 +497,23 @@ public interface RouteInterface extends NetInterface.NetHandler, JistAPI.Proxiab
     void sendIpMsg(NetMessage.Ip ipMsg, MacAddress destMacAddr);
     
   } // class: AODV
+
+
+  //////////////////////////////////////////////////
+  // CGGC
+  //
+
+  public static interface Cggc extends RouteInterface, Protocol {
+
+	/**
+	 * Timeout event, which gets called periodically. Primarily
+	 * responsible for beaconing.
+	 */
+	void timeout();
+
+  } // class: CGGC
+
+
 
 } // class: RouteInterface
 

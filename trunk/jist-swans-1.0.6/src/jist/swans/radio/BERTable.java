@@ -114,7 +114,7 @@ public class BERTable
     double ber = calc(snrVal);
     if(Main.ASSERT) Util.assertion(ber>=0.0 && ber<=1.0);
     if(ber<=0) return false;
-    double error = 1.0 - Math.pow((1.0-ber), bits);
+    double error = 1.0 - StrictMath.pow((1.0-ber), bits);
     if(Main.ASSERT) Util.assertion(error>=0.0 && error<=1.0);
     return error>Constants.random.nextDouble();
   }

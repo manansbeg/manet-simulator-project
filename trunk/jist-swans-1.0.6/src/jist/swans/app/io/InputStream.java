@@ -101,7 +101,7 @@ public abstract class InputStream extends java.io.InputStream
     while (remaining > 0) 
     {
       nr = read(localSkipBuffer, 0,
-          (int) Math.min(SKIP_BUFFER_SIZE, remaining));
+          (int) StrictMath.min(SKIP_BUFFER_SIZE, remaining));
       if (nr < 0) 
       {
         break;

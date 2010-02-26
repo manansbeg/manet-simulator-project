@@ -113,6 +113,13 @@ public class RadioInfo implements JistAPI.Timeless
     protected double background_mW;
 
     /**
+     * Receive upcoming stronger packets while receiving another packet.
+     * This is possible due to the capture effect but <b>NOT</b> accordant IEEE 802.11
+     * @author Manuel Schoch &lt;manuel.schoch@uni-ulm.de&gt;
+     */
+    protected boolean captureStrongerLast;
+
+    /**
      * Return radio wavelength.
      *
      * @return wavelength (units: meter)
@@ -180,6 +187,16 @@ public class RadioInfo implements JistAPI.Timeless
     public double getBackground_mW()
     {
       return background_mW;
+    }
+
+    /**
+     * Return whether to capture stronger last packets.
+     * 
+     * @return <code>true</code> if upcoming stronger packets shall be captured, <code>false</code> otherwise.
+     * @author Manuel Schoch &lt;manuel.schoch@uni-ulm.de&gt;
+     */
+    public boolean getCaptureStrongerLast() {
+    	return this.captureStrongerLast;
     }
 
     /** {@inheritDoc} */
@@ -251,6 +268,42 @@ public class RadioInfo implements JistAPI.Timeless
       double transmit, double gain, double sensitivity_mW, double threshold_mW, 
       double temperature, double thermalFactor, double ambientNoise_mW)
   {
+	return createShared(frequency,
+						bandwidth,
+						transmit,
+						gain,
+						sensitivity_mW,
+						threshold_mW,
+						temperature,
+						thermalFactor,
+						ambientNoise_mW,
+						true // to emulate the old behavior set true by default
+					);
+  }
+  
+  /**
+   * Create shared radio parameters.
+   *
+   * @param frequency radio frequency (units: Hertz)
+   * @param bandwidth bandwidth (units: bits/second)
+   *
+   * @param transmit transmission power (units: dBm)
+   * @param gain antenna gain (units: dB)
+   *
+   * @param sensitivity_mW receive sensivity (units: mW)
+   * @param threshold_mW receive threshold (units: mW)
+   *
+   * @param temperature field temperature (units: degrees Kelvin)
+   * @param thermalFactor thermal noise
+   * @param ambientNoise_mW ambient noise (units: mW)
+   * 
+   * @param strongerlast capture strong upcoming packets 
+   *
+   * @return shared radio information object
+   */
+  public static RadioInfoShared createShared(double frequency, int bandwidth, 
+	      double transmit, double gain, double sensitivity_mW, double threshold_mW, 
+	      double temperature, double thermalFactor, double ambientNoise_mW, boolean strongerlast) {
     RadioInfoShared shared = new RadioInfoShared();
     // wavelength
     shared.wavelength = Constants.SPEED_OF_LIGHT / frequency;
@@ -265,6 +318,9 @@ public class RadioInfo implements JistAPI.Timeless
     // noise
     double thermalNoise_mW = Constants.BOLTZMANN * temperature * thermalFactor * 1000.0;
     shared.background_mW = (ambientNoise_mW + thermalNoise_mW) * bandwidth;
+	  
+	  shared.captureStrongerLast = strongerlast;
+	    
     return shared;
   }
 

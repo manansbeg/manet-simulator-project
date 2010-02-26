@@ -509,7 +509,7 @@ public class TcpSocket implements SocketInterface.TcpSocketInterface
     // if lport = 0, find random local port
     while (this.lport == 0)
     {
-      this.lport = Math.abs(Constants.random.nextInt()) % 5000;
+      this.lport = StrictMath.abs(Constants.random.nextInt()) % 5000;
       TransInterface.TransTcpInterface tempEntity = (TransInterface.TransTcpInterface)tcpEntity;
       if (tempEntity.checkSocketHandler (this.lport))
       {

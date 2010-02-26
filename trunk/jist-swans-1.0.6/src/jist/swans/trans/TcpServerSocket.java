@@ -396,7 +396,7 @@ public class TcpServerSocket implements SocketInterface.TcpServerSocketInterface
    */
   public static int getRandomSequenceNumber ()
   {
-    return (Math.abs(Constants.random.nextInt()) % 1000000);
+    return (StrictMath.abs(Constants.random.nextInt()) % 1000000);
   }
   
   

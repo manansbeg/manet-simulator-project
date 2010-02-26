@@ -18,8 +18,11 @@ import jist.swans.Constants;
 
 import jist.runtime.JistAPI;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+
 
 /**
  * Heartbeat application.
@@ -145,7 +148,185 @@ public class AppHeartbeat implements AppInterface, NetInterface.NetHandler
     return (AppInterface)self;
   }
 
-  //////////////////////////////////////////////////
+  
+  
+  // Elmar Schoch >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  // Statistics collection
+  
+  public static class HeartbeatStats {
+	  
+	  public static class NeighborEvent {
+		  public int event;  // 1 = discovered, 0=lost
+		  long time;
+	  }
+	  
+	  private HashMap<MacAddress, List<NeighborEvent>> nbEvents = new HashMap<MacAddress, List<NeighborEvent>>();
+	  
+	  public void neighborDiscovered(MacAddress mac) {
+		  List<NeighborEvent> evList = nbEvents.get(mac);
+		  if (evList == null) {
+			  evList = new ArrayList<NeighborEvent>();
+			  nbEvents.put(mac, evList);
+		  }
+		  NeighborEvent ne = new NeighborEvent();
+		  ne.event = 1;
+		  ne.time = JistAPI.getTime();
+		  evList.add(ne);
+	  }
+	  
+	  public void neighborLost(MacAddress mac) {
+		  List<NeighborEvent> evList = nbEvents.get(mac);
+		  if (evList == null) {
+			  System.out.println("Event List started with Neighbor loss. Should not happen like this.");
+			  evList = new ArrayList<NeighborEvent>();
+			  nbEvents.put(mac, evList);
+		  }
+		  NeighborEvent ne = new NeighborEvent();
+		  ne.event = 0;
+		  ne.time = JistAPI.getTime();
+		  evList.add(ne);
+	  }
+	  
+	  private boolean isNeighbor(MacAddress mac, long time) {
+		  List<NeighborEvent> evList = nbEvents.get(mac);
+		  if (evList.get(0).time < time ) {
+			  for(NeighborEvent ne: evList) {
+				  if (ne.time <= time) {
+					  if (ne.event == 1) {
+						  return true;
+					  } else {
+						  return false;
+					  }
+				  }
+			  }
+		  }
+		  // if no time entry smaller than the current time is found
+		  return false;
+	  }
+	  
+	  /**
+	   * Return a list of statistical values on number of neighbors, counted
+	   * between 'start' and 'end', with a granularity of 'step'
+	   * @param start
+	   * @param end
+	   * @param step
+	   * @return array of floats. Currently [0] = min, [1] = max, [2] = average (more imaginable)
+	   */
+	  public float[] getNeighborCountStats(long start, long end, long step) {
+		  
+		  int minNeighbors = Integer.MAX_VALUE;
+		  int maxNeighbors = Integer.MIN_VALUE;
+		  ArrayList<Integer> counts = new ArrayList<Integer>();
+		  long time = start;
+		  while (time < end) {
+			  int cnt = 0;
+			  for(MacAddress mac: nbEvents.keySet()) {
+				  if ( isNeighbor(mac, time) ) cnt++;
+			  }
+			  if (cnt > maxNeighbors) maxNeighbors = cnt;
+			  if (cnt < minNeighbors) minNeighbors = cnt;
+			  counts.add(new Integer(cnt));
+			  
+			  time += step;
+		  }
+		  
+		  float[] result = new float[3];
+		  result[0] = minNeighbors;
+		  result[1] = maxNeighbors;
+		  int sum = 0;
+		  for(Integer cnt : counts) {
+			  sum += cnt;
+		  }
+		  if (counts.size() > 0) {
+			  result[2] = (float) sum / counts.size();
+		  } else {
+			  result[2] = 0;
+		  }
+		  
+		  return result;
+	  }
+
+	  public void displayNeighborTrace() {
+		  for(MacAddress mac: nbEvents.keySet()) {
+			  System.out.print("Node "+mac+" ");
+			  for (NeighborEvent ne : nbEvents.get(mac)) {
+				  if (ne.event == 1) {
+					  System.out.print("discovered at "+ne.time+", ");
+				  } else {
+					  System.out.print("lost at "+ne.time+", ");
+				  }
+			  }
+			  System.out.println("");
+		  }
+	  }
+	  
+	  /**
+	   * Return statistics about the time that nodes stay in mutual visibility.
+	   *
+	   * @param end [0] min visibility of a neighbor (seconds) [1] max. [2] avg. [3] total number of reincounters 
+	   * @return
+	   */
+	  public float[] getNeighborTimeStats(long end) {
+		  int reincounters = 0;
+		  long start;
+		  boolean reincounterFlag;
+		  
+		  ArrayList<Long> periods = new ArrayList<Long>();
+		  
+		  for (MacAddress mac : nbEvents.keySet()) {
+			  reincounterFlag = false;
+			  start = -1;
+			  for(NeighborEvent ne : nbEvents.get(mac)) {
+				  if (ne.event == 1) {
+					  start = ne.time;
+					  if (reincounterFlag) reincounters++;
+				  } else {
+					  if (start == -1) {
+						  // a neighbor lost event following no neighbor discovered event
+						  // --> Something is wrong. Don't count.
+						  System.out.println("Something wrong.");
+					  } else {
+						  periods.add(new Long(ne.time - start));
+						  start = -1;
+						  reincounterFlag = true;
+					  }
+				  }
+			  }
+			  if (start != -1) {
+				  // Neighbor was still there at the end
+				  periods.add(new Long(end - start));
+			  }
+		  }
+		  
+		  long minPeriod = Long.MAX_VALUE;
+		  long maxPeriod = Long.MIN_VALUE;
+		  long avgPeriodSum = 0;
+		  for(Long period : periods) {
+			  if (period.longValue() < minPeriod) minPeriod = period.longValue();
+			  if (period.longValue() > maxPeriod) maxPeriod = period.longValue();
+			  avgPeriodSum += period.longValue();
+		  }
+		  
+		  float[] result = new float[4];
+		  result[0] = minPeriod / (float) Constants.SECOND;
+		  result[1] = maxPeriod / (float) Constants.SECOND;
+		  if (periods.size() > 0) {
+			  result[2] = (avgPeriodSum / (float) Constants.SECOND)  / (float) periods.size();
+		  } else {
+			  result[2] = 0;
+		  }
+		  result[3] = reincounters;
+		  
+		  return result;
+	  }
+  }
+  
+  public HeartbeatStats hbs = new HeartbeatStats();
+  
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  
+  
+//////////////////////////////////////////////////
   // neighbour events
   //
 
@@ -156,6 +337,9 @@ public class AppHeartbeat implements AppInterface, NetInterface.NetHandler
    */
   private void neighbourLost(MacAddress mac)
   {
+	 // Elmar Schoch added >>>>>>>>>>>>>>>>>>>>>
+	 hbs.neighborLost(mac);
+	 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if(display)
     {
       System.out.println("("+nodenum+") lost neighbour:  "+mac+", t="+Util.timeSeconds());
@@ -169,11 +353,17 @@ public class AppHeartbeat implements AppInterface, NetInterface.NetHandler
    */
   private void neighbourDiscovered(MacAddress mac)
   {
+	  // Elmar Schoch added >>>>>>>>>>>>>>>>>>>>>
+	  hbs.neighborDiscovered(mac);
+	  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if(display)
     {
       System.out.println("("+nodenum+") found neighbour: "+mac+", t="+Util.timeSeconds());
     }
   }
+
+  
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   //////////////////////////////////////////////////
   // NetHandler methods
