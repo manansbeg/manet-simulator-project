@@ -131,6 +131,16 @@ public final class JistAPI_Impl extends JistAPI
    */
   public static Method method_toString;
 
+  /**
+   * Method stub field for pause method.
+   */
+  public static Method method_pause;
+  
+  /**
+   * Method stub field for resume method.
+   */
+  public static Method method_resume;
+
   static
   {
     try
@@ -195,6 +205,13 @@ public final class JistAPI_Impl extends JistAPI
       method_toString = JistAPI_Impl.class.getDeclaredMethod(
           "toString",
           new Class[] { Object.class });
+      method_pause = JistAPI_Impl.class.getDeclaredMethod(
+              "pause",
+              new Class[] { });
+      method_resume = JistAPI_Impl.class.getDeclaredMethod(
+              "resume",
+              new Class[] { });
+      
     }
     catch(NoSuchMethodException e)
     {
@@ -376,5 +393,16 @@ public final class JistAPI_Impl extends JistAPI
     }
   }
 
+  /** @see JistAPI */
+  public static void pause()
+  {
+      Controller.getActiveController().setPaused(true);
+  }
+
+  /** @see JistAPI */
+  public static void resume()
+  {
+      Controller.getActiveController().setPaused(false);
+  }
 } // class: JistAPI_Impl
 

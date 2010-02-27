@@ -514,7 +514,7 @@ public final class Rewriter extends ClassLoader
     JavaClass sup = null;
     try {
     	sup = jcl.getSuperClass();
-    } catch (ClassNotFoundException cnfe) {
+    } catch (Exception cnfe) {
     	System.out.println("Rewriter:507 ClassNotFoundException ignored (didn't find superclass of "+jcl+")");
     }
     // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

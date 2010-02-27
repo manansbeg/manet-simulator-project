@@ -346,5 +346,21 @@ public class JistAPI
     return o.toString();
   }
 
+  /**
+   * Pause the event loop.
+   *
+   */
+  public static void pause(){
+      if(Main.isRunning()) throw new RuntimeException(JistAPI_Impl.INVALID_CALL_MSG);
+  }
+
+  /**
+   * Resume the event loop.
+   *
+   */
+  public static void resume(){
+      if(Main.isRunning()) throw new RuntimeException(JistAPI_Impl.INVALID_CALL_MSG);
+  }
+
 } // interface: JistAPI
 
