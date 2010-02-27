@@ -282,6 +282,10 @@ public final class Controller implements ControllerRemote, Runnable
    * Non-application exception that aborts simulation, if any.
    */
   private Throwable simulationException;
+  
+  /** true if the controller should be paused */
+  private boolean paused;
+  private Boolean p = new Boolean(true);
 
   /** Blocking sleep singleton entity. */
   public BlockingSleep entityBlockingSleep;
@@ -431,6 +435,11 @@ public final class Controller implements ControllerRemote, Runnable
     {
       while(events.size()>0)
       {
+          synchronized (p){
+              while (paused){
+                 p.wait();
+              }
+          }
         currentEvent = events.removeFirst();
         currentSimulationTime = currentEvent.time;
         processEvent();
@@ -438,7 +447,12 @@ public final class Controller implements ControllerRemote, Runnable
         disposeEvent(currentEvent);
       }
     }
-    catch(JistException.JistSimulationEndException e) { }
+    catch(JistException.JistSimulationEndException e)
+    {
+    } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+    } 
     return numEvents;
   }
 
@@ -1465,6 +1479,18 @@ public final class Controller implements ControllerRemote, Runnable
       applog.log(s);
     }
   }
+
+/**
+ * @param b
+ */
+public void setPaused(boolean b) {
+    paused = b;
+    if (!paused) {
+        synchronized(p){
+            p.notifyAll();
+        }
+    }
+}
 
 } // class: Controller
 
