@@ -449,11 +449,12 @@ public class aodvsim
     stats.clear();
     int numTotalMessages = (int)StrictMath.floor(((double)opts.sendRate/60) * opts.nodes * opts.duration);
     long delayInterval = (long)StrictMath.ceil((double)opts.duration * (double)Constants.SECOND / (double)numTotalMessages);
-    for(int i=0; i<numTotalMessages; i++)
+    for(int i=0; i<60; i++)
     {
       //pick random send node
       int srcIdx = Constants.random.nextInt(routers.size());
       int destIdx;
+      delayInterval = (long)(-1 * (StrictMath.log( new Random( ).nextDouble( ))*Constants.SECOND/10000));
       do
       {
         //pick random dest node
