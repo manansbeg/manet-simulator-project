@@ -11,6 +11,8 @@ import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
+import javax.swing.ButtonModel;
+import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -19,9 +21,12 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.GroupLayout.Alignment;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
-public class Simulator extends JFrame implements ActionListener {
+public class Simulator extends JFrame implements ActionListener, ChangeListener {
 
 	private static final String RADIO_BTN_RANDOM_WALK 	= "RandomWalk";
 	private static final String RADIO_BTN_WAYPOINT 		= "Waypoint";
@@ -32,6 +37,7 @@ public class Simulator extends JFrame implements ActionListener {
 	private static final String LBL_RESOLUTION 			= "Resolution";
 	private static final String LBL_START_TIME 			= "Start time";
 	private static final String LBL_NUMBERS_OF_NODES	= "Numbers of nodes";
+	private static final String LBL_FIELD_SIZE			= "Field size";
 	
 	private static final String EXIT				= "Exit";
 	private static final String STOP_SIMULATION 	= "Stop simulation";
@@ -49,8 +55,10 @@ public class Simulator extends JFrame implements ActionListener {
 	private static final int GRID_HGAP = 5;
 
 	private static final String[] buttonCaptions = { START_SIMULATION, PAUSE_SIMULATION, STOP_SIMULATION, EXIT};
-	private static final String[] labelsCaptions = { LBL_NUMBERS_OF_NODES, LBL_START_TIME, LBL_RESOLUTION, LBL_END_TIME};
-	private static final String[] radioCaptions	 = { RADIO_BTN_STATIC, RADIO_BTN_TELEPORT, RADIO_BTN_WAYPOINT, RADIO_BTN_RANDOM_WALK};
+	private static final String[] labelsCaptions = { LBL_FIELD_SIZE, LBL_NUMBERS_OF_NODES, 
+		LBL_START_TIME, LBL_RESOLUTION, LBL_END_TIME};
+	private static final String[] radioCaptions	 = { RADIO_BTN_STATIC, RADIO_BTN_TELEPORT, 
+		RADIO_BTN_WAYPOINT, RADIO_BTN_RANDOM_WALK};
 	
 	// Add action listener for buttons
 	private final static Map<String, ActionListener> actionCommands = new HashMap<String, ActionListener>( ) {
@@ -96,35 +104,60 @@ public class Simulator extends JFrame implements ActionListener {
 	private static final long serialVersionUID = -7230682643620581408L;
 	
 	public Simulator( ) {
-		final JPanel jpnlMaster = new JPanel( new GridLayout( GRID_ROWS, GRID_COLUMNS));
+		final JPanel jpnlMaster = new JPanel( );
 		getContentPane( ).add( jpnlMaster, BorderLayout.PAGE_START);
 		
 		//Create panel with simulation area field
-		final JPanel jpnlSimulation = createWorkinPanel( SIMULATION_AREA);
-		jpnlSimulation.setBackground(Color.white);
+		final JPanel jpnlSimulation = createWorkingPanel( SIMULATION_AREA);
+		jpnlSimulation.setBackground( Color.white);
 		jpnlSimulation.setPreferredSize( new Dimension( 400,400));
-		jpnlMaster.add( jpnlSimulation);
 		
 		//Create panel with simulations controls.
-		final JPanel jpnlConfig = createWorkinPanel( SIMULATORS_CONFIG);
-		jpnlConfig.setLayout( new BorderLayout( ));
-		jpnlMaster.add( jpnlConfig);
+		final JPanel jpnlConfig = createConfigPanel( );
 		
-		//Create input text boxes
-		final JPanel jpnlInputs = new JPanel( new GridLayout( 2, 4, GRID_HGAP, GRID_VGAP));
-		createInputField(jpnlInputs);
-		jpnlConfig.add( jpnlInputs, BorderLayout.PAGE_START);
-		
-		final JPanel jpnlCenter = new JPanel(  new BorderLayout( ));
-		createMobilityRadioBtn( jpnlCenter);
-		jpnlConfig.add( jpnlCenter, BorderLayout.CENTER);
-		//Create buttons for control panel
-		createCtrlButtons(jpnlConfig);
-		
+		//Create main panel layout group manager
+		final GroupLayout grpMasterPanels = new GroupLayout( jpnlMaster);
+		jpnlMaster.setLayout( grpMasterPanels);
+		grpMasterPanels.setHorizontalGroup( grpMasterPanels.createSequentialGroup( )
+				.addGroup( grpMasterPanels.createParallelGroup(Alignment.LEADING)
+						.addComponent(jpnlSimulation))
+				.addGroup( grpMasterPanels.createParallelGroup(Alignment.LEADING)
+						.addComponent(jpnlConfig)));
+		grpMasterPanels.setVerticalGroup( grpMasterPanels.createSequentialGroup( )
+				.addGroup( grpMasterPanels.createParallelGroup(Alignment.BASELINE)
+						.addComponent(jpnlSimulation)
+						.addComponent(jpnlConfig)));
 		// Setup and make JFrame visible.
 		setupInitialProperties();
 		pack( );
 		setVisible(true);
+	}
+
+	//TODO: Extract to additional class
+	private JPanel createConfigPanel() {
+		final JPanel $ = createWorkingPanel( SIMULATORS_CONFIG);
+		//Create input text boxes
+		final JPanel jpnlInputs = new JPanel( new GridLayout( (int)Math.ceil( (double)labelsCaptions.length/2 ), 4, GRID_HGAP, GRID_VGAP));
+		createInputField(jpnlInputs);
+		final JPanel jpnlMobility = new JPanel(  new BorderLayout( ));
+		createMobilityRadioBtn( jpnlMobility);
+		//Create buttons for control panel
+		final JPanel jpnlButtons = new JPanel( new GridLayout( 1, 4, GRID_HGAP, GRID_VGAP));
+		createCtrlButtons(jpnlButtons);
+		final GroupLayout grpConfigPanel = new GroupLayout( $);
+		$.setLayout( grpConfigPanel);
+		grpConfigPanel.setHorizontalGroup( grpConfigPanel.createSequentialGroup( )
+				.addGroup( grpConfigPanel.createParallelGroup( Alignment.LEADING)
+						.addComponent( jpnlInputs)
+						.addComponent(jpnlMobility)
+						.addComponent( jpnlButtons)));
+		grpConfigPanel.setVerticalGroup( grpConfigPanel.createSequentialGroup( )
+						.addComponent( jpnlInputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+						          GroupLayout.PREFERRED_SIZE)
+						.addComponent(jpnlMobility)
+						.addComponent( jpnlButtons, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+						          GroupLayout.PREFERRED_SIZE));
+		return $;
 	}
 
 	private void createMobilityRadioBtn(JPanel jpnlCenter) {
@@ -132,6 +165,9 @@ public class Simulator extends JFrame implements ActionListener {
 		final ButtonGroup grp$ = new ButtonGroup( );
 		for( int i = 0; i < radioCaptions.length; ++i) {
 			final JRadioButton $ = new JRadioButton( radioCaptions[i]);
+			if ( i == 0)
+				$.setSelected( true);
+			$.addChangeListener( this);
 			grp$.add( $);
 			jpn$.add( $);
 		}
@@ -151,15 +187,13 @@ public class Simulator extends JFrame implements ActionListener {
 		}
 	}
 
-	private void createCtrlButtons(JPanel jpnlConfig) {
-		final JPanel jpnlButtons = new JPanel( new GridLayout( 1, 4, GRID_HGAP, GRID_VGAP));
+	private void createCtrlButtons(JPanel jpnlButtons) {
 		for ( int i = 0; i < buttonCaptions.length; ++i) {
 			JButton $ = new JButton( buttonCaptions[i]);
 			$.setActionCommand( buttonCaptions[i]);
 			$.addActionListener( this);
 			jpnlButtons.add( $);
 		}
-		jpnlConfig.add( jpnlButtons, BorderLayout.PAGE_END);
 	}
 
 	private void setupInitialProperties() {
@@ -167,7 +201,7 @@ public class Simulator extends JFrame implements ActionListener {
 		setTitle( SIMULATOR_TITLE);
 	}
 
-	private JPanel createWorkinPanel( String caption) {
+	private JPanel createWorkingPanel( String caption) {
 		final JPanel $ = new JPanel( );
 		final TitledBorder title = BorderFactory.createTitledBorder( caption);
 		title.setTitlePosition( TitledBorder.TOP);
@@ -182,6 +216,10 @@ public class Simulator extends JFrame implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		actionCommands.get( e.getActionCommand()).actionPerformed( e);
+	}
+
+	@Override
+	public void stateChanged(ChangeEvent e) {
 	}
 
 }
