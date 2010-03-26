@@ -346,8 +346,26 @@ public class aodvsim
     net.setProtocolHandler(opts.protocol, route);
   }  //method: addNode
 
+  private static interface RandomGenerator
+  {
+	  public double next();
+  }
 
+  private static class ExponentialGenerator implements RandomGenerator
+  {
+	private double rate;
 
+	public ExponentialGenerator(double rate)
+	{
+		this.rate = rate;
+	}
+
+	@Override
+	public double next()
+	{
+		return -StrictMath.log(Constants.random.nextDouble()) / rate;
+	}
+  }
 
   /**
    * Constructs field and nodes with given command-line options, establishes
@@ -447,16 +465,14 @@ public class aodvsim
     JistAPI.sleep(opts.startTime*Constants.SECOND);
     //System.out.println("clear stats at t="+JistAPI.getTimeString());
     stats.clear();
-    int numTotalMessages = (int)StrictMath.floor(((double)opts.sendRate/60) * opts.nodes * opts.duration);
-    long delayInterval = (long)StrictMath.ceil((double)opts.duration * (double)Constants.SECOND / (double)numTotalMessages);
-    for(int i=0; i<60; i++)
+
+    RandomGenerator msgEvent = new ExponentialGenerator((double)opts.sendRate);
+    while (JistAPI.getTime() <= (opts.duration + opts.startTime + opts.resolutionTime) * Constants.SECOND)
     {
       //pick random send node
       int srcIdx = Constants.random.nextInt(routers.size());
       int destIdx;
-      delayInterval = (long)(-1 * (StrictMath.log( new Random( ).nextDouble( ))*Constants.SECOND/10000));
-      do
-      {
+      do {
         //pick random dest node
         destIdx = Constants.random.nextInt(routers.size());
       } while (destIdx == srcIdx);
@@ -471,11 +487,12 @@ public class aodvsim
       {
         stats.netMsgs++;
       }
-      JistAPI.sleep(delayInterval);
+
+      long sleepTime = (long) StrictMath.floor(msgEvent.next() * Constants.SECOND);
+      JistAPI.sleep(sleepTime);
     }
-
+    System.out.println("That's it!!");
   } // buildField
-
 
   /**
    * Display statistics at end of simulation.
