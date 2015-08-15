@@ -1,0 +1,1 @@
+The purpose of the project is to implement a MANET simulator based  on Jist/SWANS. The simulator should have real-time visualization, and have the ability to easily add new node mobility patterns.
